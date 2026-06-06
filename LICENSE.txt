@@ -1,0 +1,51 @@
+MIT License
+
+Copyright (c) 2026 Shop Manager Pro
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY NOTICES
+
+This software includes the following third-party libraries:
+
+1. Hibernate ORM (LGPL 2.1)
+   https://hibernate.org/
+
+2. MySQL Connector/J (GPL 2.0 with FLOSS Exception)
+   https://dev.mysql.com/downloads/connector/j/
+
+3. FlatLaf Look and Feel (Apache License 2.0)
+   https://www.formdev.com/flatlaf/
+
+4. Barcode4J (Apache License 2.0)
+   https://barcode4j.sourceforge.net/
+
+5. BCrypt (ISC License)
+   https://github.com/jeremyh/jBCrypt
+
+6. SLF4J (MIT License)
+   https://www.slf4j.org/
+
+7. Logback (LGPL 2.1 / EPL 1.0)
+   https://logback.qos.ch/
+
+All third-party libraries are used in accordance with their respective licenses.
+See the lib/ directory for complete license information for each library.

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================================
+     Launch4j Configuration - Shop Management System
+     ============================================================================
+     This creates a native Windows .exe wrapper for the Java application
+     ============================================================================ -->
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>../../dist/Shop.jar</jar>
+  <outfile>../../resources/launchers/ShopManager.exe</outfile>
+  <errTitle>Shop Management System - Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/temurin/releases/</downloadUrl>
+  <supportUrl>https://shopmanager.pro/support</supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>../../resources/icons/shop_icon.ico</icon>
+
+  <!-- Classpath -->
+  <classPath>
+    <mainClass>shop.Shop</mainClass>
+    <cp>./lib/*</cp>
+    <cp>./config</cp>
+  </classPath>
+
+  <!-- JRE Configuration -->
+  <jre>
+    <path>./jre</path>
+    <bundledJre64Bit>true</bundledJre64Bit>
+    <bundledJreAsFallback>true</bundledJreAsFallback>
+    <minVersion>1.8.0</minVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+
+    <!-- Java Options -->
+    <opt>-Xms512m</opt>
+    <opt>-Xmx2048m</opt>
+    <opt>-Dfile.encoding=UTF-8</opt>
+    <opt>-Dshop.config.dir=./config</opt>
+    <opt>-Duser.timezone=UTC</opt>
+  </jre>
+
+  <!-- Version Information -->
+  <versionInfo>
+    <fileVersion>2.0.0.0</fileVersion>
+    <txtFileVersion>2.0.0 Enterprise</txtFileVersion>
+    <fileDescription>Shop Management System - Enterprise Edition</fileDescription>
+    <copyright>Copyright © 2026 Shop Manager Pro</copyright>
+    <productVersion>2.0.0.0</productVersion>
+    <txtProductVersion>2.0.0 Enterprise</txtProductVersion>
+    <productName>Shop Management System</productName>
+    <companyName>Shop Manager Pro</companyName>
+    <internalName>ShopManager</internalName>
+    <originalFilename>ShopManager.exe</originalFilename>
+    <trademarks></trademarks>
+    <language>ENGLISH_US</language>
+  </versionInfo>
+
+  <!-- Messages -->
+  <messages>
+    <startupErr>An error occurred while starting Shop Management System.</startupErr>
+    <bundledJreErr>This application requires Java Runtime Environment to run.</bundledJreErr>
+    <jreVersionErr>This application requires Java 8 or higher.
+
+Download Java from: https://adoptium.net/</jreVersionErr>
+    <launcherErr>The launcher has encountered an error.</launcherErr>
+    <instanceAlreadyExistsMsg>Shop Management System is already running.</instanceAlreadyExistsMsg>
+  </messages>
+
+  <!-- Splash Screen (Optional) -->
+  <splash>
+    <file>../../resources/icons/splash.bmp</file>
+    <waitForWindow>true</waitForWindow>
+    <timeout>60</timeout>
+    <timeoutErr>true</timeoutErr>
+  </splash>
+</launch4jConfig>

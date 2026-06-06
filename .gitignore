@@ -1,0 +1,66 @@
+# ====================================================================
+# SHOP MANAGEMENT SYSTEM v2.0 - ENTERPRISE .GITIGNORE
+# ====================================================================
+
+# 1. Compiled Output and Build Directories
+/build/
+/dist/
+/target/
+/out/
+/bin/
+/temp_build/
+*.class
+*.war
+*.ear
+
+# Exception for dependency libraries (required for local compilation)
+!/lib/
+!/lib/**/*.jar
+!/lib/*.jar
+
+# Ignore root or nested application jar distributions
+*.jar
+!/lib/*.jar
+
+# 2. IDE and Workspace Configurations
+.idea/
+.vscode/
+nbproject/private/
+.settings/
+.classpath
+.project
+*.suo
+*.user
+*.userosscache
+*.sln
+*.docstates
+
+# 3. Application Runtime Data & Local Databases
+*.db
+*.sqlite
+/barcodes/*.png
+
+# 4. Logs and Temporary Diagnostics
+*.log
+/logs/
+*.tmp
+*.bak
+*.old
+*.backup
+
+# 5. OS and File System Metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 6. Sensitive Configuration & Environment Credentials
+SMTPConfig.properties
+.env
+.env.*
+
+# 7. Deployment / Installer Packages
+/ShopManagement/
+/installer-output/
+/release/
+/dist/installer/

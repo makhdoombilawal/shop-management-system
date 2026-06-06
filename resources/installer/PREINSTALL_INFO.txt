@@ -1,0 +1,142 @@
+================================================================================
+SHOP MANAGEMENT SYSTEM - PRE-INSTALLATION INFORMATION
+================================================================================
+
+WELCOME!
+
+This installer will set up the complete Shop Management System on your computer.
+This is a production-ready application for managing retail stores, inventories,
+sales, and barcode operations.
+
+================================================================================
+WHAT WILL BE INSTALLED:
+================================================================================
+
+✓ Shop Management Application (Java Swing Desktop App)
+✓ All Required Libraries (Hibernate ORM, MySQL/SQLite drivers, UI libraries)
+✓ Database Configuration Files
+✓ Barcode System with Scanner Support
+✓ Sales & Purchase Management Modules
+✓ Complete Documentation
+
+================================================================================
+SYSTEM REQUIREMENTS:
+================================================================================
+
+MINIMUM:
+  - Windows 7 SP1 or later (32-bit or 64-bit)
+  - Java Runtime Environment (JRE) 8 or later
+  - 4 GB RAM
+  - 500 MB free disk space
+
+RECOMMENDED:
+  - Windows 10 or later
+  - Java Runtime Environment (JRE) 11 or later
+  - 8 GB RAM
+  - 1 GB free disk space
+  - 1366x768 screen resolution or higher
+
+================================================================================
+DATABASE CONFIGURATION:
+================================================================================
+
+The installer will auto-detect your system and use:
+
+1. MySQL 5.7+ or 8.0+ (if installed) - PREFERRED
+   - Superior for multi-store deployments
+   - Better performance with large datasets
+   - Network/remote access capable
+   - Requires: MySQL Host, Port, Username, Password
+
+2. SQLite (fallback if MySQL not available)
+   - Perfect for single-user deployments
+   - No external database server needed
+   - Database stored locally (C:\Program Files\ShopManagement\data\shopdb.db)
+   - Fully functional but limited to local access
+
+IMPORTANT NOTES:
+  - If MySQL is installed: Have admin credentials ready
+  - If MySQL is not installed: SQLite will be used automatically
+  - Database will be initialized with default admin users
+  - You can switch databases after installation via configuration files
+
+================================================================================
+DEFAULT LOGIN CREDENTIALS (SET AFTER INSTALLATION):
+================================================================================
+
+Super Admin:
+  Username: Bilawal
+  Password: breakthewall
+
+Regular Users:
+  Admin: admin / admin123
+  Manager: manager / manager123
+  Cashier: cashier / cashier123
+
+⚠️ SECURITY: Change these passwords immediately after first login!
+
+================================================================================
+INSTALLATION REQUIREMENTS:
+================================================================================
+
+Required Permissions:
+  - Administrator privileges (to install in Program Files)
+  - Read/Write access to installation directory
+  - System folder access for shortcuts
+
+Estimated Time:
+  - Typical installation: 2-3 minutes
+  - Includes file extraction, configuration, and database setup
+
+Space Requirements:
+  - Installation: ~200 MB
+  - Database (SQLite): ~50 MB (grows with data)
+  - Temporary files: ~100 MB during installation
+
+================================================================================
+FEATURES INCLUDED:
+================================================================================
+
+Core Functionality:
+  ✓ Product Management (CRUD operations, categories, pricing)
+  ✓ Customer Management (database, purchase history)
+  ✓ Sales Transaction Processing (cash, card, mobile payments)
+  ✓ Purchase Order Management
+  ✓ Barcode Generation & Scanning (multiple per product)
+  ✓ Inventory Management (real-time stock tracking)
+  ✓ Business Reports (daily sales, profit/loss, inventory)
+  ✓ Multi-User Support (Admin, Manager, Cashier roles)
+  ✓ Hibernate ORM Database Layer
+  ✓ Modern UI with FlatLaf Look and Feel
+  ✓ Password Security (BCrypt hashing)
+
+================================================================================
+POST-INSTALLATION:
+================================================================================
+
+The installer will:
+  1. Extract all files to C:\Program Files\ShopManagement\
+  2. Create desktop shortcut: "Shop Management"
+  3. Create Start Menu shortcuts
+  4. Initialize database (auto-detected: MySQL or SQLite)
+  5. Create default user accounts
+  6. Display this completion information
+
+Launch the application and login with default credentials provided.
+
+================================================================================
+CLICK "NEXT" TO PROCEED WITH INSTALLATION
+================================================================================
+
+Super-Admin (Hardcoded):
+  Username: Bilawal
+  Password: breakthewall
+
+Default Database Users:
+  Admin: admin / admin123
+  Manager: manager / manager123
+  Cashier: cashier / cashier123
+
+⚠️ IMPORTANT: Change default passwords immediately after first login!
+
+Click "Next" to begin installation.
