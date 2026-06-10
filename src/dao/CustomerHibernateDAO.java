@@ -23,7 +23,7 @@ public class CustomerHibernateDAO extends GenericDAO<CustomerEntity, Integer> {
      */
     public List<CustomerEntity> findByName(String name) {
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String hql = "FROM CustomerEntity c WHERE LOWER(c.name) LIKE LOWER(:name) AND c.status = 'active'";
+            String hql = "FROM CustomerEntity c WHERE c.name LIKE :name AND c.status = 'active'";
             Query<CustomerEntity> query = session.createQuery(hql, CustomerEntity.class);
             query.setParameter("name", "%" + name + "%");
             return query.list();

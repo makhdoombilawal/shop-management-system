@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS `stock_audit` (
   INDEX `idx_product` (`product_id`),
   INDEX `idx_change_date` (`change_date`),
   INDEX `idx_transaction` (`transaction_id`),
+  INDEX `idx_change_source` (`change_source`),
+  INDEX `idx_changed_by` (`changed_by`),
+  INDEX `idx_product_change_date` (`product_id`, `change_date`),
   CONSTRAINT `fk_stock_audit_product` 
     FOREIGN KEY (`product_id`) 
     REFERENCES `products`(`product_id`) 

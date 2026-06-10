@@ -34,7 +34,7 @@ public class SupplierHibernateDAO extends GenericDAO<SupplierEntity, Integer> {
      */
     public List<SupplierEntity> findByCompanyName(String companyName) {
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String hql = "FROM SupplierEntity s WHERE LOWER(s.companyName) LIKE LOWER(:name) ORDER BY s.companyName";
+            String hql = "FROM SupplierEntity s WHERE s.companyName LIKE :name ORDER BY s.companyName";
             Query<SupplierEntity> query = session.createQuery(hql, SupplierEntity.class);
             query.setParameter("name", "%" + companyName + "%");
             return query.list();
@@ -81,7 +81,7 @@ public class SupplierHibernateDAO extends GenericDAO<SupplierEntity, Integer> {
      */
     public boolean supplierExists(String companyName) {
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String hql = "SELECT COUNT(s) FROM SupplierEntity s WHERE LOWER(s.companyName) = LOWER(:name)";
+            String hql = "SELECT COUNT(s) FROM SupplierEntity s WHERE s.companyName = :name";
             Query<Long> query = session.createQuery(hql, Long.class);
             query.setParameter("name", companyName);
             Long count = query.uniqueResult();

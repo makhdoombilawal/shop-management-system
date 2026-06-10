@@ -30,10 +30,9 @@ public class ProductEntity implements Serializable {
     @Column(name = "product_type", length = 100)
     private String productType;
     
-    // Category relationship - separate management through CategoryService
-    // Using category_id for future integration without ORM relationship to avoid Hibernate issues
-    @Column(name = "category_id")
-    private Integer categoryId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private CategoryEntity category;
     
     @Column(name = "remarks", length = 1000)
     private String remarks;
@@ -55,6 +54,19 @@ public class ProductEntity implements Serializable {
     
     @Column(name = "status", length = 20)
     private String status = "active"; // active, discontinued
+    
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+    
+    @Column(name = "min_stock_level", nullable = false)
+    private Integer minStockLevel = 10;
+    
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private UserEntity createdBy;
     
     // Constructors
     public ProductEntity() {
@@ -130,12 +142,59 @@ public class ProductEntity implements Serializable {
         this.productType = productType;
     }
     
+    public CategoryEntity getCategory() {
+        return category;
+    }
+    
+    public void setCategory(CategoryEntity category) {
+        this.category = category;
+    }
+    
     public Integer getCategoryId() {
-        return categoryId;
+        return category != null ? category.getCategoryId() : null;
     }
     
     public void setCategoryId(Integer categoryId) {
-        this.categoryId = categoryId;
+        if (categoryId == null) {
+            this.category = null;
+        } else {
+            if (this.category == null) {
+                this.category = new CategoryEntity();
+            }
+            this.category.setCategoryId(categoryId);
+        }
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public Integer getMinStockLevel() {
+        return minStockLevel;
+    }
+    
+    public void setMinStockLevel(Integer minStockLevel) {
+        this.minStockLevel = minStockLevel;
+    }
+    
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+    
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+    
+    public UserEntity getCreatedBy() {
+        return createdBy;
+    }
+    
+    public void setCreatedBy(UserEntity createdBy) {
+        this.createdBy = createdBy;
     }
     
     public String getRemarks() {

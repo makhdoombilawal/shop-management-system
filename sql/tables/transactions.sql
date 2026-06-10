@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   INDEX `idx_type_date` (`transaction_type`, `transaction_date`),
   INDEX `idx_customer_date` (`customer_id`, `transaction_date`),
   INDEX `idx_product_date` (`product_id`, `transaction_date`),
+  INDEX `idx_payment_type` (`payment_type`),
   CONSTRAINT `fk_transaction_customer` 
     FOREIGN KEY (`customer_id`) 
     REFERENCES `customers`(`customer_id`) 

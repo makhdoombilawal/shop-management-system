@@ -23,7 +23,7 @@ public class ProductHibernateDAO extends GenericDAO<ProductEntity, Integer> {
      */
     public List<ProductEntity> findByName(String name) {
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String hql = "FROM ProductEntity p WHERE LOWER(p.name) LIKE LOWER(:name)";
+            String hql = "FROM ProductEntity p WHERE p.name LIKE :name";
             Query<ProductEntity> query = session.createQuery(hql, ProductEntity.class);
             query.setParameter("name", "%" + name + "%");
             return query.list();

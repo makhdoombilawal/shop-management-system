@@ -46,6 +46,9 @@ public class BarcodeEntity implements Serializable {
     @Column(name = "remarks", length = 1000)
     private String remarks;
 
+    @Column(name = "warehouse_location", length = 100)
+    private String warehouseLocation;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true; // ENTERPRISE REQUIREMENT: Only ONE active barcode per product
     
@@ -158,6 +161,14 @@ public class BarcodeEntity implements Serializable {
     
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+    
+    public String getWarehouseLocation() {
+        return warehouseLocation;
+    }
+    
+    public void setWarehouseLocation(String warehouseLocation) {
+        this.warehouseLocation = warehouseLocation;
     }
     
     public boolean isActivated() {

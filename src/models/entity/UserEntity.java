@@ -42,19 +42,24 @@ public class UserEntity implements Serializable {
     @Column(name = "role", nullable = false, length = 20)
     private String role = "CASHIER"; // ADMIN, MANAGER, CASHIER (legacy field)
     
-    // TEMPORARILY COMMENTED OUT - Hibernate mapping issue to be resolved
-    // @ManyToOne(fetch = FetchType.EAGER)
-    // @JoinColumn(name = "role_id", referencedColumnName = "role_id")
-    // private RoleEntity roleEntity;
-    
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+    
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private UserEntity createdBy;
     
     // Constructors
     public UserEntity() {
@@ -75,6 +80,12 @@ public class UserEntity implements Serializable {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
         }
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
     
     // Business methods
@@ -148,18 +159,29 @@ public class UserEntity implements Serializable {
         this.role = role;
     }
     
-    // TEMPORARILY COMMENTED OUT - Hibernate mapping issue
-    // public RoleEntity getRoleEntity() {
-    //     return roleEntity;
-    // }
-    // 
-    // public void setRoleEntity(RoleEntity roleEntity) {
-    //     this.roleEntity = roleEntity;
-    //     // Sync legacy role field with roleEntity
-    //     if (roleEntity != null) {
-    //         this.role = roleEntity.getName();
-    //     }
-    // }
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+    
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    
+    public UserEntity getCreatedBy() {
+        return createdBy;
+    }
+    
+    public void setCreatedBy(UserEntity createdBy) {
+        this.createdBy = createdBy;
+    }
     
     public Boolean getIsActive() {
         return isActive;

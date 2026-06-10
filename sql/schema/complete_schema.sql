@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   INDEX `idx_type_date` (`transaction_type`, `transaction_date`),
   INDEX `idx_customer_date` (`customer_id`, `transaction_date`),
   INDEX `idx_product_date` (`product_id`, `transaction_date`),
+  INDEX `idx_payment_type` (`payment_type`),
   CONSTRAINT `fk_transaction_customer` 
     FOREIGN KEY (`customer_id`) 
     REFERENCES `customers`(`customer_id`) 
@@ -277,6 +278,9 @@ CREATE TABLE IF NOT EXISTS `stock_audit` (
   INDEX `idx_product` (`product_id`),
   INDEX `idx_change_date` (`change_date`),
   INDEX `idx_transaction` (`transaction_id`),
+  INDEX `idx_change_source` (`change_source`),
+  INDEX `idx_changed_by` (`changed_by`),
+  INDEX `idx_product_change_date` (`product_id`, `change_date`),
   CONSTRAINT `fk_stock_audit_product` 
     FOREIGN KEY (`product_id`) 
     REFERENCES `products`(`product_id`) 

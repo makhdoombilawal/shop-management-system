@@ -147,7 +147,7 @@ echo.
 echo       Compiling...
 
 REM Generate file list (more reliable than wildcard)
-dir /s /b src\*.java > !BUILD_TEMP!\sources.txt
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path src -Filter *.java -Recurse | ForEach-Object { '\"' + $_.FullName.Replace('\', '/') + '\"' } | Out-File -FilePath !BUILD_TEMP!\sources.txt -Encoding ascii"
 
 REM Compile with verbose error reporting
 call "!JAVA_HOME!\bin\javac.exe" ^
@@ -211,50 +211,11 @@ echo.
 echo [8/8] Creating launch scripts...
 
 REM Create batch launcher
-(
-    echo @echo off
-    echo REM ShopManagement Launcher
-    echo setlocal enabledelayedexpansion
-    echo.
-    echo REM Auto-detect Java
-    echo if defined JAVA_HOME (
-    echo     set JAVA_BIN=!JAVA_HOME!\bin\java.exe
-    echo ) else (
-    echo     for /f "tokens=*" %%%%I in ('where java.exe 2^>nul') do (
-    echo         set JAVA_BIN=%%%%I
-    echo     )
-    echo )
-    echo.
-    echo if not defined JAVA_BIN (
-    echo     echo Error: Java not found. Please install Java or set JAVA_HOME
-    echo     exit /b 1
-    echo )
-    echo.
-    echo REM Launch application
-    echo cd /d "%%~dp0"
-    echo "!JAVA_BIN!" -cp "shop-management.jar;lib\*" shop.Shop
-) > !OUTPUT_DIR!\ShopManagement.bat
-
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllText('!OUTPUT_DIR!\ShopManagement.bat', '@echo off' + [Environment]::NewLine + 'REM ShopManagement Launcher' + [Environment]::NewLine + 'setlocal enabledelayedexpansion' + [Environment]::NewLine + 'if defined JAVA_HOME (' + [Environment]::NewLine + '    set JAVA_BIN=^!JAVA_HOME^!\bin\java.exe' + [Environment]::NewLine + ') else (' + [Environment]::NewLine + '    for /f \"tokens=*\" %%%%I in (''where java.exe 2^>nul'') do (' + [Environment]::NewLine + '        set JAVA_BIN=%%%%I' + [Environment]::NewLine + '    )' + [Environment]::NewLine + ')' + [Environment]::NewLine + 'if not defined JAVA_BIN (' + [Environment]::NewLine + '    echo Error: Java not found. Please install Java or set JAVA_HOME' + [Environment]::NewLine + '    exit /b 1' + [Environment]::NewLine + ')' + [Environment]::NewLine + 'cd /d \"%%~dp0\"' + [Environment]::NewLine + '\"^!JAVA_BIN^!\" -cp \"shop-management.jar;lib\*\" shop.Shop')"
 echo       ✓ Created: ShopManagement.bat
 
 REM Create PowerShell launcher
-(
-    echo # ShopManagement Launcher - PowerShell
-    echo $ErrorActionPreference = 'Stop'
-    echo.
-    echo # Find Java
-    echo $javaPath = if ($env:JAVA_HOME) { "$env:JAVA_HOME\bin\java.exe" } else { (Get-Command java -ErrorAction SilentlyContinue).Source }
-    echo.
-    echo if (-not $javaPath) {
-    echo     Write-Error "Java not found. Please install Java or set JAVA_HOME"
-    echo     exit 1
-    echo }
-    echo.
-    echo # Launch app
-    echo Set-Location $PSScriptRoot
-    echo & "$javaPath" -cp "shop-management.jar;lib\*" shop.Shop
-) > !OUTPUT_DIR!\ShopManagement.ps1
-
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllText('!OUTPUT_DIR!\ShopManagement.ps1', '# ShopManagement Launcher - PowerShell' + [Environment]::NewLine + '$ErrorActionPreference = ''Stop''' + [Environment]::NewLine + '$javaPath = if ($env:JAVA_HOME) { \"$env:JAVA_HOME\bin\java.exe\" } else { (Get-Command java -ErrorAction SilentlyContinue).Source }' + [Environment]::NewLine + 'if (-not $javaPath) {' + [Environment]::NewLine + '    Write-Error \"Java not found. Please install Java or set JAVA_HOME\"' + [Environment]::NewLine + '    exit 1' + [Environment]::NewLine + '}' + [Environment]::NewLine + 'Set-Location $PSScriptRoot' + [Environment]::NewLine + '& \"$javaPath\" -cp \"shop-management.jar;lib\*\" shop.Shop')"
 echo       ✓ Created: ShopManagement.ps1
 
 REM Copy libraries to dist
@@ -294,7 +255,8 @@ echo.
 echo ============================================================================
 echo.
 
-goto :END
+endlocal
+exit /b 0
 
 REM ============================================================================
 REM ERROR HANDLING
@@ -318,8 +280,5 @@ echo   - Review source file syntax
 echo   - Verify all dependencies in lib\
 echo.
 
-set errorlevel=1
-
-:END
 endlocal
-exit /b %errorlevel%
+exit /b 1

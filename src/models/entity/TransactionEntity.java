@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_transaction_type", columnList = "transaction_type"),
     @Index(name = "idx_customer_id", columnList = "customer_id"),
     @Index(name = "idx_product_id", columnList = "product_id"),
-    @Index(name = "idx_supplier_id", columnList = "supplier_id")
+    @Index(name = "idx_supplier_id", columnList = "supplier_id"),
+    @Index(name = "idx_payment_type", columnList = "payment_type")
 })
 public class TransactionEntity implements Serializable {
     
@@ -66,6 +67,32 @@ public class TransactionEntity implements Serializable {
     @Column(name = "stock_after_transaction")
     private Integer stockAfterTransaction;
     
+    @Column(name = "transaction_status", nullable = false, length = 20)
+    private String transactionStatus = "completed"; // completed, pending, cancelled, refunded
+    
+    @Column(name = "currency", length = 3)
+    private String currency = "USD";
+    
+    @Column(name = "discount_amount", precision = 10, scale = 2)
+    private Double discountAmount = 0.0;
+    
+    @Column(name = "tax_amount", precision = 10, scale = 2)
+    private Double taxAmount = 0.0;
+    
+    @Column(name = "stock_before_transaction")
+    private Integer stockBeforeTransaction;
+    
+    @ManyToOne(fetch = FetchType.LAZY, targetEntity = UserEntity.class)
+    @JoinColumn(name = "processed_by")
+    private UserEntity processedBy;
+    
+    @ManyToOne(fetch = FetchType.LAZY, targetEntity = TransactionEntity.class)
+    @JoinColumn(name = "reference_transaction_id")
+    private TransactionEntity referenceTransaction;
+    
+    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
+    private Double unitPrice;
+    
     // Transient fields for display purposes
     @Transient
     private String customerName;
@@ -84,6 +111,7 @@ public class TransactionEntity implements Serializable {
         this.transactionType = transactionType;
         this.product = product;
         this.quantity = quantity;
+        this.unitPrice = price;
         
         if ("SALE".equalsIgnoreCase(transactionType)) {
             this.sellPrice = price;
@@ -98,10 +126,23 @@ public class TransactionEntity implements Serializable {
     @PrePersist
     @PreUpdate
     protected void calculateTotal() {
-        if (quantity != null && sellPrice != null && "SALE".equalsIgnoreCase(transactionType)) {
-            this.totalAmount = quantity * sellPrice;
-        } else if (quantity != null && purchasePrice != null) {
-            this.totalAmount = quantity * purchasePrice;
+        if ("SALE".equalsIgnoreCase(transactionType)) {
+            if (sellPrice != null) {
+                this.unitPrice = sellPrice;
+            }
+            if (quantity != null && sellPrice != null) {
+                this.totalAmount = quantity * sellPrice;
+            }
+        } else {
+            if (purchasePrice != null) {
+                this.unitPrice = purchasePrice;
+            }
+            if (quantity != null && purchasePrice != null) {
+                this.totalAmount = quantity * purchasePrice;
+            }
+        }
+        if (this.unitPrice == null) {
+            this.unitPrice = 0.0;
         }
     }
     
@@ -225,6 +266,70 @@ public class TransactionEntity implements Serializable {
     
     public void setStockAfterTransaction(Integer stockAfterTransaction) {
         this.stockAfterTransaction = stockAfterTransaction;
+    }
+    
+    public String getTransactionStatus() {
+        return transactionStatus;
+    }
+    
+    public void setTransactionStatus(String transactionStatus) {
+        this.transactionStatus = transactionStatus;
+    }
+    
+    public String getCurrency() {
+        return currency;
+    }
+    
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+    
+    public Double getDiscountAmount() {
+        return discountAmount;
+    }
+    
+    public void setDiscountAmount(Double discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+    
+    public Double getTaxAmount() {
+        return taxAmount;
+    }
+    
+    public void setTaxAmount(Double taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+    
+    public Integer getStockBeforeTransaction() {
+        return stockBeforeTransaction;
+    }
+    
+    public void setStockBeforeTransaction(Integer stockBeforeTransaction) {
+        this.stockBeforeTransaction = stockBeforeTransaction;
+    }
+    
+    public UserEntity getProcessedBy() {
+        return processedBy;
+    }
+    
+    public void setProcessedBy(UserEntity processedBy) {
+        this.processedBy = processedBy;
+    }
+    
+    public TransactionEntity getReferenceTransaction() {
+        return referenceTransaction;
+    }
+    
+    public void setReferenceTransaction(TransactionEntity referenceTransaction) {
+        this.referenceTransaction = referenceTransaction;
+    }
+    
+    public Double getUnitPrice() {
+        return unitPrice;
+    }
+    
+    public void setUnitPrice(Double unitPrice) {
+        this.unitPrice = unitPrice;
     }
     
     public String getCustomerName() {
