@@ -37,6 +37,8 @@ nbproject/private/
 
 # 3. Application Runtime Data & Local Databases
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 /barcodes/*.png
 

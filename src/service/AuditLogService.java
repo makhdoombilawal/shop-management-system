@@ -123,6 +123,29 @@ public class AuditLogService {
     }
     
     /**
+     * Log a BARCODE_SCAN action for audit trail.
+     * Records which barcode was scanned, the resolved product (if any), and the scan context.
+     *
+     * @param barcodeValue the raw scanned barcode string
+     * @param productId    the resolved product ID, or null if unresolved
+     * @param context      scan context (e.g. "POS_SALE", "PURCHASE_RECEIVING", "RETURN")
+     * @param userId       the user who performed the scan
+     */
+    public void logBarcodeScan(String barcodeValue, Integer productId, String context, Integer userId) {
+        try {
+            Integer entityId = productId != null ? productId : 0;
+            String newValue = "barcode=" + barcodeValue + ", context=" + context;
+            String remarks = "Barcode scanned: " + barcodeValue
+                    + (productId != null ? " -> Product #" + productId : " -> UNRESOLVED");
+            createAuditLog(EntityType.BARCODE, entityId, Action.BARCODE_SCAN,
+                          null, newValue, userId, null, remarks);
+        } catch (Exception e) {
+            // Barcode scan audit is non-critical - log but don't throw
+            util.LoggerUtil.logError("Failed to audit barcode scan: " + e.getMessage(), null);
+        }
+    }
+    
+    /**
      * Get all audit logs
      */
     public List<AuditLogEntity> getAllAuditLogs() {

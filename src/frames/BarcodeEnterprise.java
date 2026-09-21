@@ -56,8 +56,18 @@ public class BarcodeEnterprise extends BaseFrame {
     private JButton btnMarkSold;
     private JButton btnPrint;
     private JButton btnBack;
+    private JButton btnExportCSV;
+    private JButton btnImportCSV;
     
     public BarcodeEnterprise() throws Exception {
+        this(null);
+    }
+
+    /**
+     * Constructor with barcode pre-fill for unknown barcode registration workflow.
+     * @param prefillBarcode Barcode string to pre-fill into the barcode number field, or null.
+     */
+    public BarcodeEnterprise(String prefillBarcode) throws Exception {
         super();
         if (!authorized) return;
         
@@ -73,6 +83,12 @@ public class BarcodeEnterprise extends BaseFrame {
         loadProductOverview(); // Load products with barcode status
         
         EnterpriseTheme.applyGlobalTheme();
+
+        // Pre-fill barcode if provided (from unknown barcode POS workflow)
+        if (prefillBarcode != null && !prefillBarcode.trim().isEmpty() && txtBarcodeNumber != null) {
+            txtBarcodeNumber.setText(prefillBarcode.trim());
+            txtBarcodeNumber.requestFocusInWindow();
+        }
     }
     
     private void initializeComponents() {
@@ -239,6 +255,31 @@ public class BarcodeEnterprise extends BaseFrame {
         btnPanel.add(btnCleanup);
 
         formPanel.add(btnPanel, gbc);
+
+        // ── CSV Import / Export row ──
+        row++;
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(8, 6, 4, 6);
+
+        JPanel ioPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        ioPanel.setBackground(EnterpriseTheme.CARD_BG);
+
+        btnExportCSV = new JButton("\uD83D\uDCE4 Export CSV");
+        EnterpriseTheme.styleSecondaryButton(btnExportCSV);
+        btnExportCSV.setToolTipText("Export all barcode records to a CSV file");
+        btnExportCSV.addActionListener(e -> exportBarcodesToCSV());
+        ioPanel.add(btnExportCSV);
+
+        btnImportCSV = new JButton("\uD83D\uDCE5 Import CSV");
+        EnterpriseTheme.stylePrimaryButton(btnImportCSV);
+        btnImportCSV.setToolTipText("Import barcodes from a CSV file (ADMIN/SUPER_ADMIN only)");
+        btnImportCSV.setEnabled(models.Session.canImportBarcodes());
+        btnImportCSV.addActionListener(e -> importBarcodesFromCSV());
+        ioPanel.add(btnImportCSV);
+
+        formPanel.add(ioPanel, gbc);
+        row++;
 
         // Back button separate
         gbc.gridy = row;
@@ -976,6 +1017,110 @@ public class BarcodeEnterprise extends BaseFrame {
         } catch (Exception e) {
             LoggerUtil.logError(BarcodeEnterprise.class, "Error returning to dashboard", e);
             EnterpriseTheme.showError(this, "Failed to open dashboard: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Exports all barcode records to a user-selected CSV file.
+     */
+    private void exportBarcodesToCSV() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Export Barcodes to CSV");
+        chooser.setSelectedFile(new java.io.File("barcodes_export.csv"));
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
+
+        int result = chooser.showSaveDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) return;
+
+        java.io.File file = chooser.getSelectedFile();
+        if (!file.getName().toLowerCase().endsWith(".csv")) {
+            file = new java.io.File(file.getAbsolutePath() + ".csv");
+        }
+
+        try {
+            int count = util.BarcodeImportExportUtil.exportToCSV(file);
+            EnterpriseTheme.showSuccess(this,
+                    String.format("Export successful!\n\n%d barcode records exported to:\n%s",
+                            count, file.getAbsolutePath()));
+        } catch (Exception ex) {
+            LoggerUtil.logError(BarcodeEnterprise.class, "CSV export error", ex);
+            EnterpriseTheme.showError(this, "Export failed: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Imports barcodes from a user-selected CSV file.
+     * Shows a dry-run preview first before executing the import.
+     * Restricted to ADMIN / SUPER_ADMIN roles.
+     */
+    private void importBarcodesFromCSV() {
+        if (!models.Session.canImportBarcodes()) {
+            EnterpriseTheme.showError(this,
+                    "Permission Denied: Only ADMIN or SUPER_ADMIN can import barcodes.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Import Barcodes from CSV");
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
+
+        int result = chooser.showOpenDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) return;
+
+        java.io.File file = chooser.getSelectedFile();
+
+        try {
+            // Dry-run preview
+            List<util.BarcodeImportExportUtil.ImportRow> rows =
+                    util.BarcodeImportExportUtil.previewImport(file);
+
+            long validCount   = rows.stream().filter(r -> r.isValid()).count();
+            long invalidCount = rows.size() - validCount;
+
+            String preview = String.format(
+                    "Import Preview — %s\n\n" +
+                    "Total rows:    %d\n" +
+                    "Valid rows:    %d\n" +
+                    "Invalid rows:  %d\n\n" +
+                    (invalidCount > 0
+                        ? "⚠️ " + invalidCount + " row(s) will be skipped.\n\n"
+                        : "") +
+                    "Proceed with import?",
+                    file.getName(), rows.size(), validCount, invalidCount);
+
+            boolean confirm = EnterpriseTheme.showConfirm(this, preview);
+            if (!confirm) return;
+
+            // Execute import
+            util.BarcodeImportExportUtil.ImportResult importResult =
+                    util.BarcodeImportExportUtil.executeImport(rows, true);
+
+            String summary = String.format(
+                    "Import Complete!\n\n" +
+                    "✅ Imported: %d rows\n" +
+                    "⏭️ Skipped:  %d rows\n" +
+                    (importResult.hasErrors()
+                        ? "\n⚠️ Errors:\n" + String.join("\n", importResult.getErrors().subList(
+                              0, Math.min(5, importResult.getErrors().size())))
+                              + (importResult.getErrors().size() > 5
+                                 ? "\n... and " + (importResult.getErrors().size() - 5) + " more."
+                                 : "")
+                        : ""),
+                    importResult.getImportedCount(), importResult.getSkippedCount());
+
+            if (importResult.hasErrors()) {
+                EnterpriseTheme.showWarning(this, summary);
+            } else {
+                EnterpriseTheme.showSuccess(this, summary);
+            }
+
+            // Refresh displays
+            loadBarcodes();
+            loadProductOverview();
+
+        } catch (Exception ex) {
+            LoggerUtil.logError(BarcodeEnterprise.class, "CSV import error", ex);
+            EnterpriseTheme.showError(this, "Import failed: " + ex.getMessage());
         }
     }
 }

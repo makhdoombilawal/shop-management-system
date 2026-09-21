@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "products", indexes = {
     @Index(name = "idx_product_name", columnList = "name"),
-    @Index(name = "idx_product_type", columnList = "product_type")
+    @Index(name = "idx_product_type", columnList = "product_type"),
+    @Index(name = "idx_product_sku", columnList = "sku")
 })
 public class ProductEntity implements Serializable {
     
@@ -26,6 +27,15 @@ public class ProductEntity implements Serializable {
     
     @Column(name = "name", nullable = false, length = 200)
     private String name;
+
+    @Column(name = "sku", length = 50, unique = true)
+    private String sku;
+
+    @Column(name = "brand", length = 100)
+    private String brand;
+
+    @Column(name = "unit", length = 30)
+    private String unit = "Piece"; // Piece, Box, Pack, Kg, Gram, Liter, Milliliter, Meter, Dozen
     
     @Column(name = "product_type", length = 100)
     private String productType;
@@ -45,6 +55,9 @@ public class ProductEntity implements Serializable {
     
     @Column(name = "purchase_price", nullable = false, precision = 10, scale = 2)
     private Double purchasePrice;
+
+    @Column(name = "wholesale_price", precision = 10, scale = 2)
+    private Double wholesalePrice;
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -60,6 +73,18 @@ public class ProductEntity implements Serializable {
     
     @Column(name = "min_stock_level", nullable = false)
     private Integer minStockLevel = 10;
+
+    @Column(name = "max_stock_level")
+    private Integer maxStockLevel = 1000;
+
+    @Column(name = "reorder_level")
+    private Integer reorderLevel = 15;
+
+    @Column(name = "is_weighted", nullable = false)
+    private Boolean isWeighted = false;
+
+    @Column(name = "weight_prefix", length = 10)
+    private String weightPrefix;
     
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
@@ -243,6 +268,70 @@ public class ProductEntity implements Serializable {
     
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public Double getWholesalePrice() {
+        return wholesalePrice;
+    }
+
+    public void setWholesalePrice(Double wholesalePrice) {
+        this.wholesalePrice = wholesalePrice;
+    }
+
+    public Integer getMaxStockLevel() {
+        return maxStockLevel;
+    }
+
+    public void setMaxStockLevel(Integer maxStockLevel) {
+        this.maxStockLevel = maxStockLevel;
+    }
+
+    public Integer getReorderLevel() {
+        return reorderLevel;
+    }
+
+    public void setReorderLevel(Integer reorderLevel) {
+        this.reorderLevel = reorderLevel;
+    }
+
+    public Boolean getIsWeighted() {
+        return isWeighted;
+    }
+
+    public void setIsWeighted(Boolean isWeighted) {
+        this.isWeighted = isWeighted;
+    }
+
+    public String getWeightPrefix() {
+        return weightPrefix;
+    }
+
+    public void setWeightPrefix(String weightPrefix) {
+        this.weightPrefix = weightPrefix;
     }
     
     public String getStatus() {

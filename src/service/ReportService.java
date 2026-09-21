@@ -268,6 +268,50 @@ public class ReportService {
     }
     
     /**
+     * Generate barcode analytics and health report.
+     * Contains barcode counts, status breakdown, and list of products missing barcodes.
+     */
+    public Map<String, Object> generateBarcodeReport() {
+        Map<String, Object> report = new HashMap<>();
+
+        report.put("reportDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        report.put("reportTitle", "Supermarket Barcode Analytics & Coverage Report");
+
+        dao.BarcodeHibernateDAO barcodeDAO = new dao.BarcodeHibernateDAO();
+        List<models.entity.BarcodeEntity> allBarcodes = barcodeDAO.findAll();
+        List<models.entity.ProductEntity> allProducts = productDAO.findAll();
+
+        long totalBarcodes = allBarcodes.size();
+        long activeCount = allBarcodes.stream().filter(b -> "available".equalsIgnoreCase(b.getStatus()) || "active".equalsIgnoreCase(b.getStatus())).count();
+        long soldCount = allBarcodes.stream().filter(b -> "sold".equalsIgnoreCase(b.getStatus())).count();
+        long damagedCount = allBarcodes.stream().filter(b -> "damaged".equalsIgnoreCase(b.getStatus())).count();
+        long primaryCount = allBarcodes.stream().filter(b -> b.getIsPrimary() != null && b.getIsPrimary()).count();
+
+        // Products with and without barcodes
+        java.util.Set<Integer> productsWithBarcodes = allBarcodes.stream()
+                .filter(b -> b.getProduct() != null)
+                .map(b -> b.getProduct().getProductId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        List<models.entity.ProductEntity> missingBarcodeProducts = allProducts.stream()
+                .filter(p -> p.getIsDeleted() == null || !p.getIsDeleted())
+                .filter(p -> !productsWithBarcodes.contains(p.getProductId()))
+                .collect(java.util.stream.Collectors.toList());
+
+        report.put("totalBarcodes", totalBarcodes);
+        report.put("activeCount", activeCount);
+        report.put("soldCount", soldCount);
+        report.put("damagedCount", damagedCount);
+        report.put("primaryCount", primaryCount);
+        report.put("totalProducts", (long) allProducts.size());
+        report.put("productsWithBarcodesCount", (long) productsWithBarcodes.size());
+        report.put("productsMissingBarcodesCount", (long) missingBarcodeProducts.size());
+        report.put("missingBarcodeProducts", missingBarcodeProducts);
+
+        return report;
+    }
+
+    /**
      * Format currency
      */
     public String formatCurrency(Double amount) {

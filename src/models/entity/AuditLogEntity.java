@@ -62,7 +62,7 @@ public class AuditLogEntity implements Serializable {
     }
     
     public enum Action {
-        CREATE, UPDATE, DELETE, LOGIN, LOGOUT, PRICE_CHANGE, STATUS_CHANGE
+        CREATE, UPDATE, DELETE, LOGIN, LOGOUT, PRICE_CHANGE, STATUS_CHANGE, BARCODE_SCAN
     }
     
     // Constructors

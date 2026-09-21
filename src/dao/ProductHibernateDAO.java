@@ -29,6 +29,20 @@ public class ProductHibernateDAO extends GenericDAO<ProductEntity, Integer> {
             return query.list();
         }
     }
+
+    /**
+     * Find product by exact SKU (case-insensitive)
+     */
+    public ProductEntity findBySku(String sku) {
+        if (sku == null || sku.trim().isEmpty()) return null;
+        try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
+            String hql = "FROM ProductEntity p WHERE LOWER(p.sku) = LOWER(:sku) AND (p.isDeleted = false OR p.isDeleted IS NULL)";
+            Query<ProductEntity> query = session.createQuery(hql, ProductEntity.class);
+            query.setParameter("sku", sku.trim());
+            List<ProductEntity> list = query.list();
+            return list.isEmpty() ? null : list.get(0);
+        }
+    }
     
     /**
      * Find products by type

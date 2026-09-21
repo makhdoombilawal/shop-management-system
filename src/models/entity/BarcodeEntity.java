@@ -33,6 +33,18 @@ public class BarcodeEntity implements Serializable {
     
     @Column(name = "barcode_number", nullable = false, unique = true, length = 50)
     private String barcodeNumber;
+
+    @Column(name = "barcode_type", nullable = false, length = 30)
+    private String barcodeType = "CODE128"; // CODE128, EAN13, EAN8, UPCA, UPCE, CODE39, QR
+
+    @Column(name = "is_primary", nullable = false)
+    private Boolean isPrimary = false;
+
+    @Column(name = "source", length = 50)
+    private String source = "INTERNAL"; // INTERNAL, MANUFACTURER, IMPORTED, SYSTEM
+
+    @Column(name = "notes", length = 500)
+    private String notes;
     
     @Column(name = "status", nullable = false, length = 20)
     private String status = "available"; // available, sold, damaged
@@ -163,6 +175,38 @@ public class BarcodeEntity implements Serializable {
         this.isActive = isActive;
     }
     
+    public String getBarcodeType() {
+        return barcodeType;
+    }
+
+    public void setBarcodeType(String barcodeType) {
+        this.barcodeType = barcodeType;
+    }
+
+    public Boolean getIsPrimary() {
+        return isPrimary;
+    }
+
+    public void setIsPrimary(Boolean isPrimary) {
+        this.isPrimary = isPrimary;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
     public String getWarehouseLocation() {
         return warehouseLocation;
     }

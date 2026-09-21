@@ -100,7 +100,6 @@ public class HibernateUtil {
         config.setProperty("hibernate.order_updates", props.getProperty("hibernate.order_updates", "true"));
         config.setProperty("hibernate.jdbc.fetch_size", props.getProperty("hibernate.jdbc.fetch_size", "100"));
         config.setProperty("hibernate.default_batch_fetch_size", props.getProperty("hibernate.default_batch_fetch_size", "50"));
-        config.setProperty("hibernate.connection.provider_disables_autocommit", "true");
 
         return config;
     }

@@ -7,6 +7,8 @@ import models.entity.TransactionEntity;
 import service.ProductService;
 import service.SupplierService;
 import service.TransactionService;
+import service.ProductLookupService;
+import service.ProductLookupService.ProductLookupResult;
 import util.EnterpriseTheme;
 import util.LoggerUtil;
 
@@ -26,6 +28,7 @@ public class PurchaseOrderEnterprise extends BaseFrame {
     private final ProductService productService = new ProductService();
     private final SupplierService supplierService = new SupplierService();
     private final TransactionService transactionService = new TransactionService();
+    private final ProductLookupService lookupService = new ProductLookupService();
     
     // UI Components - Left Panel
     private JPanel headerPanel;
@@ -45,6 +48,10 @@ public class PurchaseOrderEnterprise extends BaseFrame {
     private JButton btnCompletePurchase;
     private JButton btnClearOrder;
     private JButton btnBack;
+    
+    // Barcode Scanner Components
+    private JTextField txtBarcodeScanner;
+    private JLabel lblScannerStatus;
     
     // Data
     private List<SupplierEntity> suppliers;
@@ -88,15 +95,13 @@ public class PurchaseOrderEnterprise extends BaseFrame {
     }
     
     private void createHeader() {
+        JPanel headerWrapper = new JPanel(new BorderLayout());
+        headerWrapper.setBackground(EnterpriseTheme.BACKGROUND);
+
         headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(EnterpriseTheme.PRIMARY);
-        headerPanel.setPreferredSize(new Dimension(0, 80));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(
-            EnterpriseTheme.PADDING_LARGE,
-            EnterpriseTheme.PADDING_LARGE,
-            EnterpriseTheme.PADDING_LARGE,
-            EnterpriseTheme.PADDING_LARGE
-        ));
+        headerPanel.setPreferredSize(new Dimension(0, 60));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30));
         
         JLabel lblTitle = new JLabel("PURCHASE ORDERS");
         lblTitle.setFont(EnterpriseTheme.FONT_TITLE);
@@ -108,8 +113,114 @@ public class PurchaseOrderEnterprise extends BaseFrame {
         
         headerPanel.add(lblTitle, BorderLayout.WEST);
         headerPanel.add(lblUser, BorderLayout.EAST);
+
+        // Barcode scanner strip for purchase receiving
+        JPanel scannerStrip = createPurchaseScannerStrip();
+
+        headerWrapper.add(headerPanel, BorderLayout.NORTH);
+        headerWrapper.add(scannerStrip, BorderLayout.SOUTH);
         
-        add(headerPanel, BorderLayout.NORTH);
+        add(headerWrapper, BorderLayout.NORTH);
+    }
+
+    /**
+     * Creates a barcode scanner strip for scanning products during purchase receiving.
+     * Scanned barcode auto-selects the product in the combo box and fills its purchase price.
+     */
+    private JPanel createPurchaseScannerStrip() {
+        JPanel strip = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        strip.setBackground(new Color(30, 41, 59));
+        strip.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(251, 146, 60)), // Orange accent
+            BorderFactory.createEmptyBorder(8, 30, 8, 30)
+        ));
+
+        JLabel lblIcon = new JLabel("\uD83D\uDCE6  SCAN PRODUCT BARCODE:");
+        lblIcon.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblIcon.setForeground(new Color(251, 146, 60)); // Orange
+
+        txtBarcodeScanner = new JTextField();
+        txtBarcodeScanner.setFont(new Font("Consolas", Font.BOLD, 15));
+        txtBarcodeScanner.setPreferredSize(new Dimension(300, 36));
+        txtBarcodeScanner.setBackground(new Color(15, 23, 42));
+        txtBarcodeScanner.setForeground(new Color(251, 146, 60));
+        txtBarcodeScanner.setCaretColor(new Color(251, 146, 60));
+        txtBarcodeScanner.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(251, 146, 60), 1),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        txtBarcodeScanner.setToolTipText("Scan barcode to auto-select product for purchase");
+        txtBarcodeScanner.addActionListener(e -> processPurchaseBarcodeInput());
+
+        lblScannerStatus = new JLabel("Ready \u2014 Scan product barcode");
+        lblScannerStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblScannerStatus.setForeground(new Color(148, 163, 184));
+
+        strip.add(lblIcon);
+        strip.add(txtBarcodeScanner);
+        strip.add(lblScannerStatus);
+
+        return strip;
+    }
+
+    /**
+     * Processes a scanned barcode in the purchase context.
+     * Resolves the product and auto-selects it in the product combo box.
+     */
+    private void processPurchaseBarcodeInput() {
+        String rawInput = txtBarcodeScanner.getText();
+        txtBarcodeScanner.setText("");
+
+        if (rawInput == null || rawInput.trim().isEmpty()) return;
+
+        try {
+            ProductLookupResult result = lookupService.resolveProduct(rawInput);
+
+            if (result.isSuccess() && result.getProduct() != null) {
+                ProductEntity resolved = result.getProduct();
+
+                // Find and select the product in the combo box
+                boolean found = false;
+                for (int i = 0; i < products.size(); i++) {
+                    if (products.get(i).getProductId().equals(resolved.getProductId())) {
+                        cmbProduct.setSelectedIndex(i + 1); // +1 for "-- Select --" item
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found) {
+                    lblScannerStatus.setText("\u2705 " + resolved.getName() + " selected");
+                    lblScannerStatus.setForeground(new Color(34, 197, 94));
+                    Toolkit.getDefaultToolkit().beep();
+                    // Focus quantity field for quick entry
+                    txtQuantity.requestFocusInWindow();
+                    txtQuantity.selectAll();
+                } else {
+                    lblScannerStatus.setText("\u26A0\uFE0F Product found but not in active products list");
+                    lblScannerStatus.setForeground(new Color(245, 158, 11));
+                }
+            } else {
+                lblScannerStatus.setText("\u274C " + result.getMessage());
+                lblScannerStatus.setForeground(new Color(239, 68, 68));
+                Toolkit.getDefaultToolkit().beep();
+            }
+        } catch (Exception ex) {
+            LoggerUtil.logError(PurchaseOrderEnterprise.class, "Barcode lookup error", ex);
+            lblScannerStatus.setText("\u26A0\uFE0F Error: " + ex.getMessage());
+            lblScannerStatus.setForeground(new Color(245, 158, 11));
+        }
+
+        // Reset status after 4 seconds
+        Timer resetTimer = new Timer(4000, ev -> {
+            lblScannerStatus.setText("Ready \u2014 Scan product barcode");
+            lblScannerStatus.setForeground(new Color(148, 163, 184));
+        });
+        resetTimer.setRepeats(false);
+        resetTimer.start();
+
+        // Refocus scanner
+        SwingUtilities.invokeLater(() -> txtBarcodeScanner.requestFocusInWindow());
     }
     
     private JPanel createProductSelectionPanel() {

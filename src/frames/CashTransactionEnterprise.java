@@ -7,6 +7,9 @@ import service.ProductService;
 import service.CustomerService;
 import service.TransactionService;
 import service.SettingsService;
+import service.ProductLookupService;
+import service.ProductLookupService.ProductLookupResult;
+import service.AuditLogService;
 import util.EnterpriseTheme;
 import util.LoggerUtil;
 
@@ -14,6 +17,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.print.PageFormat;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
@@ -32,6 +37,8 @@ public class CashTransactionEnterprise extends BaseFrame {
     private final CustomerService customerService = new CustomerService();
     private final TransactionService transactionService = new TransactionService();
     private final SettingsService settingsService = new SettingsService();
+    private final ProductLookupService lookupService = new ProductLookupService();
+    private final AuditLogService auditLogService = new AuditLogService();
 
     // UI Components - Left Panel (Product Selection)
     private JTextField txtSearch;
@@ -44,6 +51,11 @@ public class CashTransactionEnterprise extends BaseFrame {
     private JLabel lblPageInfo;
     private JButton btnPrevPage;
     private JButton btnNextPage;
+    
+    // UI Components - Barcode Scanner
+    private JTextField txtBarcodeScanner;
+    private JLabel lblScannerStatus;
+    private Timer scannerFeedbackTimer;
     
     // UI Components - Right Panel (Cart/Checkout)
     private DefaultTableModel cartTableModel;
@@ -79,11 +91,15 @@ public class CashTransactionEnterprise extends BaseFrame {
         initializeComponents();
         loadProducts();
         loadCustomers();
+        registerKeyboardShortcuts();
 
         // Ensure tax rate label shows current settings value
         refreshTaxRate();
 
         EnterpriseTheme.applyGlobalTheme();
+
+        // Auto-focus scanner input after frame is visible
+        SwingUtilities.invokeLater(() -> focusScannerField());
     }
     
     private void initializeComponents() {
@@ -107,13 +123,17 @@ public class CashTransactionEnterprise extends BaseFrame {
     }
     
     private void createHeader() {
+        JPanel headerWrapper = new JPanel(new BorderLayout());
+        headerWrapper.setBackground(EnterpriseTheme.BACKGROUND);
+
+        // ── Top bar: Title + user info ──
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(EnterpriseTheme.SUCCESS);
-        headerPanel.setPreferredSize(new Dimension(0, 70));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30));
+        headerPanel.setPreferredSize(new Dimension(0, 55));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 30));
         
         JLabel lblTitle = new JLabel("POS - POINT OF SALE");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(Color.WHITE);
         
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
@@ -134,8 +154,328 @@ public class CashTransactionEnterprise extends BaseFrame {
         
         headerPanel.add(lblTitle, BorderLayout.WEST);
         headerPanel.add(rightPanel, BorderLayout.EAST);
-        
-        add(headerPanel, BorderLayout.NORTH);
+
+        // ── Barcode scanner strip ──
+        JPanel scannerStrip = createBarcodeScannerStrip();
+
+        headerWrapper.add(headerPanel, BorderLayout.NORTH);
+        headerWrapper.add(scannerStrip, BorderLayout.SOUTH);
+
+        add(headerWrapper, BorderLayout.NORTH);
+    }
+
+    /**
+     * Creates the barcode scanner input strip below the header.
+     * USB HID scanners type characters then send Enter — this field captures that.
+     */
+    private JPanel createBarcodeScannerStrip() {
+        JPanel strip = new JPanel(new BorderLayout(10, 0));
+        strip.setBackground(new Color(30, 41, 59)); // Dark slate
+        strip.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(56, 189, 248)), // Cyan accent bottom
+            BorderFactory.createEmptyBorder(8, 30, 8, 30)
+        ));
+
+        // Scanner icon label
+        JLabel lblScanIcon = new JLabel("\uD83D\uDCF7  SCAN BARCODE:"); // 📷
+        lblScanIcon.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblScanIcon.setForeground(new Color(56, 189, 248)); // Cyan
+
+        // Scanner text field
+        txtBarcodeScanner = new JTextField();
+        txtBarcodeScanner.setFont(new Font("Consolas", Font.BOLD, 16));
+        txtBarcodeScanner.setPreferredSize(new Dimension(350, 38));
+        txtBarcodeScanner.setBackground(new Color(15, 23, 42));
+        txtBarcodeScanner.setForeground(new Color(56, 189, 248));
+        txtBarcodeScanner.setCaretColor(new Color(56, 189, 248));
+        txtBarcodeScanner.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(56, 189, 248), 1),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        txtBarcodeScanner.setToolTipText("Scan barcode or type barcode/SKU and press Enter");
+
+        // Enter key triggers barcode lookup
+        txtBarcodeScanner.addActionListener(e -> processBarcodeInput());
+
+        // Status label (shows scan result feedback)
+        lblScannerStatus = new JLabel("Ready — Scan or type barcode");
+        lblScannerStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblScannerStatus.setForeground(new Color(148, 163, 184)); // Slate grey
+
+        // Shortcuts hint
+        JLabel lblShortcuts = new JLabel("F2 Search | F4 Qty | F8 Pay | ESC Clear");
+        lblShortcuts.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblShortcuts.setForeground(new Color(100, 116, 139));
+
+        // Left side: icon + field
+        JPanel leftGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        leftGroup.setOpaque(false);
+        leftGroup.add(lblScanIcon);
+        leftGroup.add(txtBarcodeScanner);
+        leftGroup.add(lblScannerStatus);
+
+        // Right side: shortcuts hint
+        JPanel rightGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        rightGroup.setOpaque(false);
+        rightGroup.add(lblShortcuts);
+
+        strip.add(leftGroup, BorderLayout.CENTER);
+        strip.add(rightGroup, BorderLayout.EAST);
+
+        return strip;
+    }
+
+    /**
+     * Processes barcode/SKU input from the scanner text field.
+     * Resolves the product using ProductLookupService and adds it to the cart.
+     */
+    private void processBarcodeInput() {
+        String rawInput = txtBarcodeScanner.getText();
+        txtBarcodeScanner.setText(""); // Clear immediately for next scan
+
+        if (rawInput == null || rawInput.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            ProductLookupResult result = lookupService.resolveProduct(rawInput);
+
+            if (result.isSuccess() && result.getProduct() != null) {
+                ProductEntity product = result.getProduct();
+                double quantity = result.getQuantity(); // >1 for variable-weight barcodes
+
+                // Add to cart (auto-increments if already present)
+                addToCartFromScanner(product, (int) Math.max(1, quantity));
+
+                // Visual + audio feedback: SUCCESS
+                showScannerFeedback("\u2705 " + product.getName() + " — " + result.getMessage(),
+                        new Color(34, 197, 94)); // Green
+                Toolkit.getDefaultToolkit().beep();
+
+                // Audit log: successful barcode scan
+                auditLogService.logBarcodeScan(rawInput.trim(), product.getProductId(),
+                        "POS_SALE", Session.getUserId());
+
+            } else {
+                // Lookup failed — show error feedback
+                showScannerFeedback("\u274C " + result.getMessage(), new Color(239, 68, 68)); // Red
+
+                // Double-beep for error
+                Toolkit.getDefaultToolkit().beep();
+                Timer doubleBeep = new Timer(200, ev -> Toolkit.getDefaultToolkit().beep());
+                doubleBeep.setRepeats(false);
+                doubleBeep.start();
+
+                // Unknown barcode popup (Phase 8 integration point)
+                handleUnknownBarcode(rawInput.trim());
+            }
+        } catch (Exception ex) {
+            LoggerUtil.logError(CashTransactionEnterprise.class, "Error during barcode lookup", ex);
+            showScannerFeedback("\u26A0\uFE0F Lookup error: " + ex.getMessage(), new Color(245, 158, 11)); // Amber
+        }
+
+        // Always refocus scanner field for continuous scanning
+        focusScannerField();
+    }
+
+    /**
+     * Adds a product to the cart from a scanner scan.
+     * If the product is already in the cart, increments its quantity (merge-on-scan behavior).
+     */
+    private void addToCartFromScanner(ProductEntity product, int quantityToAdd) {
+        if (product.getStock() <= 0) {
+            showScannerFeedback("\u26A0\uFE0F " + product.getName() + " is OUT OF STOCK!", new Color(239, 68, 68));
+            return;
+        }
+
+        // Check if already in cart — merge (increment)
+        for (CartItem item : cartItems) {
+            if (item.product.getProductId().equals(product.getProductId())) {
+                int newQty = item.quantity + quantityToAdd;
+                if (newQty <= product.getStock()) {
+                    item.quantity = newQty;
+                    updateCartDisplay();
+                    showScannerFeedback("\u2705 " + product.getName() + " qty: " + item.quantity,
+                            new Color(34, 197, 94));
+                } else {
+                    showScannerFeedback("\u26A0\uFE0F Max stock reached (" + product.getStock() + " available)",
+                            new Color(245, 158, 11));
+                }
+                return;
+            }
+        }
+
+        // New item
+        cartItems.add(new CartItem(product, quantityToAdd));
+        updateCartDisplay();
+    }
+
+    /**
+     * Shows temporary status feedback on the scanner strip.
+     * Auto-resets to "Ready" after 3 seconds.
+     */
+    private void showScannerFeedback(String message, Color color) {
+        if (lblScannerStatus == null) return;
+
+        lblScannerStatus.setText(message);
+        lblScannerStatus.setForeground(color);
+
+        // Cancel previous timer
+        if (scannerFeedbackTimer != null && scannerFeedbackTimer.isRunning()) {
+            scannerFeedbackTimer.stop();
+        }
+
+        // Reset after 3 seconds
+        scannerFeedbackTimer = new Timer(3000, e -> {
+            lblScannerStatus.setText("Ready \u2014 Scan or type barcode");
+            lblScannerStatus.setForeground(new Color(148, 163, 184));
+        });
+        scannerFeedbackTimer.setRepeats(false);
+        scannerFeedbackTimer.start();
+    }
+
+    /**
+     * Handles an unknown/unregistered barcode.
+     * Shows a popup asking to register the barcode (role-based).
+     */
+    private void handleUnknownBarcode(String barcode) {
+        String role = Session.getRole();
+        boolean canRegister = "SUPER_ADMIN".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role);
+
+        if (canRegister) {
+            int choice = JOptionPane.showOptionDialog(
+                this,
+                "Barcode not registered: " + barcode + "\n\nWould you like to register this barcode to a product?",
+                "Unknown Barcode",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                new String[]{"Register Barcode", "Skip"},
+                "Skip"
+            );
+
+            if (choice == 0) {
+                // Open Barcode Management with the barcode pre-filled
+                try {
+                    new BarcodeEnterprise(barcode).setVisible(true);
+                } catch (Exception ex) {
+                    LoggerUtil.logError(CashTransactionEnterprise.class, "Error opening BarcodeEnterprise", ex);
+                    EnterpriseTheme.showError(this, "Failed to open Barcode Management: " + ex.getMessage());
+                }
+            }
+        }
+        // Cashiers without register permission just see the error feedback (already shown)
+    }
+
+    /**
+     * Requests focus on the barcode scanner text field for hands-free operation.
+     */
+    private void focusScannerField() {
+        if (txtBarcodeScanner != null) {
+            SwingUtilities.invokeLater(() -> {
+                txtBarcodeScanner.requestFocusInWindow();
+                txtBarcodeScanner.selectAll();
+            });
+        }
+    }
+
+    /**
+     * Registers global keyboard shortcuts for the POS frame.
+     * F2 = Focus product search, F4 = Edit selected cart item qty, F8 = Focus payment, ESC = Clear cart
+     */
+    private void registerKeyboardShortcuts() {
+        JRootPane rootPane = getRootPane();
+        InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = rootPane.getActionMap();
+
+        // F1 — Focus barcode scanner field
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0), "focusScanner");
+        actionMap.put("focusScanner", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                focusScannerField();
+            }
+        });
+
+        // F2 — Focus product search field
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "focusSearch");
+        actionMap.put("focusSearch", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (txtSearch != null) {
+                    txtSearch.requestFocusInWindow();
+                    txtSearch.selectAll();
+                }
+            }
+        });
+
+        // F4 — Edit quantity of selected cart row
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0), "editQuantity");
+        actionMap.put("editQuantity", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = cartTable.getSelectedRow();
+                if (selectedRow >= 0 && selectedRow < cartItems.size()) {
+                    CartItem item = cartItems.get(selectedRow);
+                    String input = JOptionPane.showInputDialog(
+                        CashTransactionEnterprise.this,
+                        "Enter new quantity for: " + item.product.getName(),
+                        String.valueOf(item.quantity)
+                    );
+                    if (input != null) {
+                        try {
+                            int newQty = Integer.parseInt(input.trim());
+                            if (newQty > 0 && newQty <= item.product.getStock()) {
+                                item.quantity = newQty;
+                                updateCartDisplay();
+                            } else if (newQty <= 0) {
+                                removeFromCart(selectedRow);
+                            } else {
+                                EnterpriseTheme.showWarning(CashTransactionEnterprise.this,
+                                    "Maximum stock: " + item.product.getStock());
+                            }
+                        } catch (NumberFormatException ex) {
+                            EnterpriseTheme.showWarning(CashTransactionEnterprise.this, "Invalid quantity.");
+                        }
+                    }
+                } else {
+                    EnterpriseTheme.showWarning(CashTransactionEnterprise.this,
+                        "Select a cart item first, then press F4 to edit quantity.");
+                }
+                focusScannerField();
+            }
+        });
+
+        // F8 — Focus payment amount field
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0), "focusPayment");
+        actionMap.put("focusPayment", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (txtAmountReceived != null) {
+                    txtAmountReceived.requestFocusInWindow();
+                    txtAmountReceived.selectAll();
+                }
+            }
+        });
+
+        // ESC — Clear cart (with confirmation)
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "clearCart");
+        actionMap.put("clearCart", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearCart();
+                focusScannerField();
+            }
+        });
+
+        // F12 — Complete sale
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F12, 0), "completeSale");
+        actionMap.put("completeSale", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                completeSale();
+            }
+        });
     }
     
     private JPanel createProductPanel() {
@@ -945,6 +1285,7 @@ public class CashTransactionEnterprise extends BaseFrame {
             updateCartDisplay();
             loadProducts(); // Refresh product stock
             cmbCustomer.setSelectedIndex(0); // Reset to walk-in
+            focusScannerField(); // Return focus to scanner for next customer
 
         } catch (Exception e) {
             LoggerUtil.logError(CashTransactionEnterprise.class, "Error completing sale", e);

@@ -166,6 +166,30 @@ public class Session {
     }
 
     /**
+     * Check if current user can manage (create/edit/delete) barcodes.
+     * @return true for SUPER_ADMIN, ADMIN, MANAGER roles
+     */
+    public static boolean canManageBarcodes() {
+        return isAdmin() || isManager() || isSuperAdmin();
+    }
+
+    /**
+     * Check if current user can print barcode labels.
+     * @return true for SUPER_ADMIN, ADMIN, MANAGER roles
+     */
+    public static boolean canPrintBarcodes() {
+        return isAdmin() || isManager() || isSuperAdmin();
+    }
+
+    /**
+     * Check if current user can bulk-import barcodes via CSV.
+     * @return true for SUPER_ADMIN and ADMIN only
+     */
+    public static boolean canImportBarcodes() {
+        return isAdmin() || isSuperAdmin();
+    }
+
+    /**
      * Check if current user has any of the specified roles
      * @param roles Roles to check
      * @return true if user has any of the specified roles

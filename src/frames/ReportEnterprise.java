@@ -49,7 +49,8 @@ public class ReportEnterprise extends BaseFrame {
         "Customer Analysis",
         "Top Selling Products",
         "Profit Analysis",
-        "Stock Valuation"
+        "Stock Valuation",
+        "Barcode Analytics & Coverage"
     };
     
     public ReportEnterprise() throws Exception {
@@ -379,6 +380,9 @@ public class ReportEnterprise extends BaseFrame {
                     break;
                 case "Stock Valuation":
                     generateStockValuationReport();
+                    break;
+                case "Barcode Analytics & Coverage":
+                    generateBarcodeAnalyticsReport();
                     break;
                 default:
                     txtReportSummary.setText("Report type: " + reportType + "\n\nPlease select a valid report type from the dropdown.");
@@ -780,6 +784,42 @@ public class ReportEnterprise extends BaseFrame {
         } catch (Exception e) {
             LoggerUtil.logError(ReportEnterprise.class, "Error returning to dashboard", e);
             EnterpriseTheme.showError(this, "Failed to open dashboard: " + e.getMessage());
+        }
+    }
+
+    private void generateBarcodeAnalyticsReport() {
+        Map<String, Object> report = reportService.generateBarcodeReport();
+
+        StringBuilder summary = new StringBuilder();
+        summary.append("BARCODE ANALYTICS & COVERAGE REPORT\n");
+        summary.append("Generated: ").append(report.get("reportDate")).append("\n");
+        summary.append("------------------------------------------------------------------------\n");
+        summary.append("Total Barcodes Registered:     ").append(report.get("totalBarcodes")).append("\n");
+        summary.append("Active Barcodes:               ").append(report.get("activeCount")).append("\n");
+        summary.append("Sold Barcodes:                 ").append(report.get("soldCount")).append("\n");
+        summary.append("Damaged Barcodes:              ").append(report.get("damagedCount")).append("\n");
+        summary.append("Primary Barcodes:              ").append(report.get("primaryCount")).append("\n");
+        summary.append("Products with Barcodes:        ").append(report.get("productsWithBarcodesCount")).append(" / ").append(report.get("totalProducts")).append("\n");
+        summary.append("Products MISSING Barcodes:     ").append(report.get("productsMissingBarcodesCount")).append("\n");
+
+        txtReportSummary.setText(summary.toString());
+
+        String[] columns = {"Product ID", "Product Name", "Category", "Stock", "Status"};
+        tableModel.setColumnIdentifiers(columns);
+
+        @SuppressWarnings("unchecked")
+        List<models.entity.ProductEntity> missingList = (List<models.entity.ProductEntity>) report.get("missingBarcodeProducts");
+        if (missingList != null) {
+            for (models.entity.ProductEntity p : missingList) {
+                String catName = p.getCategory() != null ? p.getCategory().getName() : "Uncategorized";
+                tableModel.addRow(new Object[]{
+                    p.getProductId(),
+                    p.getName(),
+                    catName,
+                    p.getStock(),
+                    "⚠️ NO BARCODE"
+                });
+            }
         }
     }
 }
