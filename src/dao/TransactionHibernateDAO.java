@@ -5,7 +5,9 @@ import models.entity.ProductEntity;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -104,18 +106,10 @@ public class TransactionHibernateDAO extends GenericDAO<TransactionEntity, Integ
     /**
      * Get today's total sales amount
      */
-    @SuppressWarnings("unchecked")
     public Double getTodayTotalSales() {
-        try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String sql = "SELECT COALESCE(SUM(t.total_amount), 0.0) as total FROM transactions t " +
-                        "WHERE t.transaction_type = 'SALE' " +
-                        "AND t.transaction_date >= CURDATE() " +
-                        "AND t.transaction_date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
-            org.hibernate.query.NativeQuery<Double> query = session.createNativeQuery(sql);
-            query.addScalar("total", org.hibernate.type.DoubleType.INSTANCE);
-            Double result = query.uniqueResult();
-            return result != null ? result : 0.0;
-        }
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        return getTotalSalesByDateRange(startOfDay, endOfDay);
     }
     
     /**
@@ -201,15 +195,15 @@ public class TransactionHibernateDAO extends GenericDAO<TransactionEntity, Integ
     /**
      * Get today's total purchases amount
      */
-    @SuppressWarnings("unchecked")
     public Double getTodayTotalPurchases() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
-            String sql = "SELECT COALESCE(SUM(t.total_amount), 0.0) as total FROM transactions t " +
-                        "WHERE t.transaction_type = 'PURCHASE' " +
-                        "AND t.transaction_date >= CURDATE() " +
-                        "AND t.transaction_date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
-            org.hibernate.query.NativeQuery<Double> query = session.createNativeQuery(sql);
-            query.addScalar("total", org.hibernate.type.DoubleType.INSTANCE);
+            String hql = "SELECT SUM(t.totalAmount) FROM TransactionEntity t WHERE t.transactionType = 'PURCHASE' " +
+                        "AND t.transactionDate BETWEEN :start AND :end";
+            Query<Double> query = session.createQuery(hql, Double.class);
+            query.setParameter("start", startOfDay);
+            query.setParameter("end", endOfDay);
             Double result = query.uniqueResult();
             return result != null ? result : 0.0;
         }
