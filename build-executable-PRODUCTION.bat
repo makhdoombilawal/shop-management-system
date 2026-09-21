@@ -211,7 +211,7 @@ echo.
 echo [8/8] Creating launch scripts...
 
 REM Create batch launcher
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllText('!OUTPUT_DIR!\ShopManagement.bat', '@echo off' + [Environment]::NewLine + 'REM ShopManagement Launcher' + [Environment]::NewLine + 'setlocal enabledelayedexpansion' + [Environment]::NewLine + 'if defined JAVA_HOME (' + [Environment]::NewLine + '    set JAVA_BIN=^!JAVA_HOME^!\bin\java.exe' + [Environment]::NewLine + ') else (' + [Environment]::NewLine + '    for /f \"tokens=*\" %%%%I in (''where java.exe 2^>nul'') do (' + [Environment]::NewLine + '        set JAVA_BIN=%%%%I' + [Environment]::NewLine + '    )' + [Environment]::NewLine + ')' + [Environment]::NewLine + 'if not defined JAVA_BIN (' + [Environment]::NewLine + '    echo Error: Java not found. Please install Java or set JAVA_HOME' + [Environment]::NewLine + '    exit /b 1' + [Environment]::NewLine + ')' + [Environment]::NewLine + 'cd /d \"%%~dp0\"' + [Environment]::NewLine + '\"^!JAVA_BIN^!\" -Xms256m -Xmx1024m -cp \"lib\shop-management.jar;shop-management.jar;lib\*;config;resources\" shop.Shop')"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllText('!OUTPUT_DIR!\ShopManagement.bat', '@echo off' + [Environment]::NewLine + 'REM ShopManagement Launcher' + [Environment]::NewLine + 'set \"JAVA_BIN=java.exe\"' + [Environment]::NewLine + 'if defined JAVA_HOME if exist \"%JAVA_HOME%\bin\java.exe\" set \"JAVA_BIN=%JAVA_HOME%\bin\java.exe\"' + [Environment]::NewLine + 'cd /d \"%%~dp0\"' + [Environment]::NewLine + '\"%%JAVA_BIN%%\" -Xms256m -Xmx1024m -cp \"lib\shop-management.jar;shop-management.jar;lib\*;config;resources\" shop.Shop')"
 echo       ✓ Created: ShopManagement.bat
 
 REM Create PowerShell launcher
