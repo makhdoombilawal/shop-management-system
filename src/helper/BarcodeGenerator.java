@@ -53,8 +53,7 @@ public class BarcodeGenerator {
             util.LoggerUtil.logInfo("✅ Barcode image generated: " + filePath);
             return filePath.toString();
         } catch (Exception e) {
-            e.printStackTrace();
-            util.LoggerUtil.logError("❌ Error generating barcode: " + e.getMessage(), null);
+            util.LoggerUtil.logError(BarcodeGenerator.class, "Error generating barcode for: " + barcodeData, e);
             return null;
         }
     }
@@ -99,8 +98,7 @@ public class BarcodeGenerator {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
-            util.LoggerUtil.logError("❌ Error printing barcode: " + e.getMessage(), null);
+            util.LoggerUtil.logError(BarcodeGenerator.class, "Error printing barcode: " + barcodeNumber, e);
         }
     }
 }

@@ -70,11 +70,11 @@ public class CustomerService {
             return true;
             
         } catch (Exception e) {
+            util.LoggerUtil.logError(CustomerService.class, "Error adding customer", e);
             JOptionPane.showMessageDialog(null,
                 "❌ Error adding customer: " + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
             return false;
         }
     }
@@ -107,11 +107,11 @@ public class CustomerService {
             return true;
             
         } catch (Exception e) {
+            util.LoggerUtil.logError(CustomerService.class, "Error updating customer", e);
             JOptionPane.showMessageDialog(null,
                 "❌ Error updating customer: " + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
             return false;
         }
     }
@@ -142,11 +142,11 @@ public class CustomerService {
             return true;
             
         } catch (Exception e) {
+            util.LoggerUtil.logError(CustomerService.class, "Error deleting customer: " + customerId, e);
             JOptionPane.showMessageDialog(null,
                 "❌ Error deleting customer: " + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
             return false;
         }
     }
@@ -202,7 +202,7 @@ public class CustomerService {
             Optional<CustomerEntity> existing = findByPhone(phoneNumber);
             return existing.isPresent();
         } catch (Exception e) {
-            e.printStackTrace();
+            util.LoggerUtil.logError(CustomerService.class, "Error checking phone number: " + phoneNumber, e);
             return false;
         }
     }

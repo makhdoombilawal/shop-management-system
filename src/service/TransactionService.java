@@ -1,9 +1,6 @@
 package service;
 
 import dao.TransactionHibernateDAO;
-import dao.ProductHibernateDAO;
-import dao.CustomerHibernateDAO;
-import dao.SupplierHibernateDAO;
 import models.entity.TransactionEntity;
 import models.entity.ProductEntity;
 import models.entity.CustomerEntity;
@@ -25,15 +22,9 @@ import java.util.Optional;
 public class TransactionService {
     
     private final TransactionHibernateDAO transactionDAO;
-    private final ProductHibernateDAO productDAO;
-    private final CustomerHibernateDAO customerDAO;
-    private final SupplierHibernateDAO supplierDAO;
     
     public TransactionService() {
         this.transactionDAO = new TransactionHibernateDAO();
-        this.productDAO = new ProductHibernateDAO();
-        this.customerDAO = new CustomerHibernateDAO();
-        this.supplierDAO = new SupplierHibernateDAO();
     }
     
     /**
@@ -41,26 +32,24 @@ public class TransactionService {
      */
     public TransactionEntity processSale(Integer productId, Integer customerId, 
                                          Integer quantity, String paymentType, String remarks) {
-        try {
-            // Validate inputs
-            if (!ValidationUtil.isPositiveInteger(quantity)) {
-                String error = "Invalid quantity: " + quantity;
-                LoggerUtil.logWarning(TransactionService.class, error);
-                showError("Invalid quantity!");
-                return null;
-            }
-            
-            // Get product
-            Optional<ProductEntity> productOpt = productDAO.findById(productId);
-            if (!productOpt.isPresent()) {
+        if (!ValidationUtil.isPositiveInteger(quantity)) {
+            String error = "Invalid quantity: " + quantity;
+            LoggerUtil.logWarning(TransactionService.class, error);
+            showError("Invalid quantity!");
+            return null;
+        }
+        
+        org.hibernate.Transaction tx = null;
+        try (org.hibernate.Session session = util.HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+
+            ProductEntity product = session.get(ProductEntity.class, productId);
+            if (product == null) {
                 LoggerUtil.logWarning(TransactionService.class, "Product not found: " + productId);
                 showError("Product not found!");
                 return null;
             }
-            
-            ProductEntity product = productOpt.get();
-            
-            // Check stock availability
+
             if (product.getStock() < quantity) {
                 String msg = String.format("Insufficient stock for product %s. Requested: %d, Available: %d",
                     product.getName(), quantity, product.getStock());
@@ -68,25 +57,22 @@ public class TransactionService {
                 showError("Insufficient stock! Available: " + product.getStock() + " units");
                 return null;
             }
-            
-            // Check if product is active
+
             if ("discontinued".equalsIgnoreCase(product.getStatus())) {
                 LoggerUtil.logWarning(TransactionService.class, 
                     "Attempted sale of discontinued product: " + product.getName());
                 showError("This product has been discontinued!");
                 return null;
             }
-            
-            // Get customer (optional - can be walk-in customer)
+
             CustomerEntity customer = null;
             if (customerId != null && customerId > 0) {
-                Optional<CustomerEntity> customerOpt = customerDAO.findById(customerId);
-                if (customerOpt.isPresent()) {
-                    customer = customerOpt.get();
-                }
+                customer = session.get(CustomerEntity.class, customerId);
             }
-            
-            // Create transaction
+
+            int newStock = product.getStock() - quantity;
+            product.setStock(newStock);
+
             TransactionEntity transaction = new TransactionEntity();
             transaction.setTransactionType("SALE");
             transaction.setProduct(product);
@@ -97,21 +83,19 @@ public class TransactionService {
             transaction.setTotalAmount(quantity * product.getSellPrice());
             transaction.setPaymentType(paymentType);
             transaction.setRemarks(remarks);
-            
-            // Update stock
-            int newStock = product.getStock() - quantity;
-            product.setStock(newStock);
             transaction.setStockAfterTransaction(newStock);
-            
-            // Save transaction
-            TransactionEntity savedTransaction = transactionDAO.save(transaction);
-            
-            // Update product stock
-            productDAO.update(product);
-            
-            // Update customer purchase info
+
+            session.save(transaction);
+            session.update(product);
+
             if (customer != null) {
-                customerDAO.updatePurchaseInfo(customer.getCustomerId(), transaction.getTotalAmount());
+                customer.updateLastPurchase(transaction.getTotalAmount());
+                session.update(customer);
+            }
+
+            tx.commit();
+
+            if (customer != null) {
                 LoggerUtil.logInfo(TransactionService.class, 
                     String.format("Sale completed: Product=%s, Customer=%s, Qty=%d, Amount=$%.2f, Payment=%s",
                         product.getName(), customer.getName(), quantity, 
@@ -121,24 +105,24 @@ public class TransactionService {
                     String.format("Sale completed (Walk-in): Product=%s, Qty=%d, Amount=$%.2f, Payment=%s",
                         product.getName(), quantity, transaction.getTotalAmount(), paymentType));
             }
-            
-            // Log low stock warning
+
             if (newStock <= 10) {
                 LoggerUtil.logWarning(TransactionService.class, 
                     String.format("Low stock alert: %s - Only %d units remaining", 
                         product.getName(), newStock));
             }
-            
-            return savedTransaction;
-            
+
+            return transaction;
         } catch (Exception e) {
+            if (tx != null && tx.getStatus().canRollback()) {
+                try { tx.rollback(); } catch (Exception rbEx) { /* ignore */ }
+            }
             LoggerUtil.logError(TransactionService.class, "Error processing sale", e);
             showError("Error processing sale: " + e.getMessage());
             throw e;
         }
     }
     
-    /**
     /**
      * Process a purchase transaction (WITHOUT supplier tracking - legacy)
      */
@@ -153,50 +137,45 @@ public class TransactionService {
      */
     public TransactionEntity processPurchase(Integer productId, Integer supplierId,
                                              Integer quantity, Double purchasePrice, String remarks) {
-        try {
-            // Validate inputs
-            if (!ValidationUtil.isPositiveInteger(quantity)) {
-                LoggerUtil.logWarning(TransactionService.class, "Invalid quantity for purchase: " + quantity);
-                showError("Invalid quantity!");
-                return null;
-            }
-            
-            if (!ValidationUtil.isPositiveNumber(purchasePrice)) {
-                LoggerUtil.logWarning(TransactionService.class, "Invalid purchase price: " + purchasePrice);
-                showError("Invalid purchase price!");
-                return null;
-            }
-            
-            // Get product
-            Optional<ProductEntity> productOpt = productDAO.findById(productId);
-            if (!productOpt.isPresent()) {
+        if (!ValidationUtil.isPositiveInteger(quantity)) {
+            LoggerUtil.logWarning(TransactionService.class, "Invalid quantity for purchase: " + quantity);
+            showError("Invalid quantity!");
+            return null;
+        }
+        
+        if (!ValidationUtil.isPositiveNumber(purchasePrice)) {
+            LoggerUtil.logWarning(TransactionService.class, "Invalid purchase price: " + purchasePrice);
+            showError("Invalid purchase price!");
+            return null;
+        }
+        
+        org.hibernate.Transaction tx = null;
+        try (org.hibernate.Session session = util.HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+
+            ProductEntity product = session.get(ProductEntity.class, productId);
+            if (product == null) {
                 LoggerUtil.logWarning(TransactionService.class, "Product not found for purchase: " + productId);
                 showError("Product not found!");
                 return null;
             }
             
-            ProductEntity product = productOpt.get();
             int oldStock = product.getStock();
-            
-            // Get supplier if provided
+
             SupplierEntity supplier = null;
-            if (supplierId != null) {
-                Optional<SupplierEntity> supplierOpt = supplierDAO.findById(supplierId);
-                if (!supplierOpt.isPresent()) {
+            if (supplierId != null && supplierId > 0) {
+                supplier = session.get(SupplierEntity.class, supplierId);
+                if (supplier == null) {
                     LoggerUtil.logWarning(TransactionService.class, "Supplier not found: " + supplierId);
                     showError("Supplier not found!");
                     return null;
                 }
-                supplier = supplierOpt.get();
-                
-                // Check if supplier is active
                 if (!supplier.isActive()) {
                     showError("Supplier '" + supplier.getCompanyName() + "' is inactive!");
                     return null;
                 }
             }
-            
-            // Create transaction
+
             TransactionEntity transaction = new TransactionEntity();
             transaction.setTransactionType("PURCHASE");
             transaction.setProduct(product);
@@ -205,38 +184,35 @@ public class TransactionService {
             transaction.setPurchasePrice(purchasePrice);
             transaction.setTotalAmount(quantity * purchasePrice);
             transaction.setRemarks(remarks);
-            
-            // Update stock
+
             int newStock = product.getStock() + quantity;
             product.setStock(newStock);
             transaction.setStockAfterTransaction(newStock);
-            
-            // Update product purchase price if different
             product.setPurchasePrice(purchasePrice);
-            
-            // Save transaction
-            TransactionEntity savedTransaction = transactionDAO.save(transaction);
-            
-            // Update product
-            productDAO.update(product);
-            
-            // Update supplier if provided
+
+            session.save(transaction);
+            session.update(product);
+
             if (supplier != null) {
                 supplier.updateLastPurchase();
-                supplierDAO.update(supplier);
+                session.update(supplier);
             }
-            
+
+            tx.commit();
+
             String supplierInfo = supplier != null ? 
                 ", Supplier=" + supplier.getCompanyName() : "";
-            
+
             LoggerUtil.logInfo(TransactionService.class, 
                 String.format("Purchase completed: Product=%s%s, Qty=%d, Price=$%.2f, TotalCost=$%.2f, Stock: %d -> %d",
                     product.getName(), supplierInfo, quantity, purchasePrice, 
                     transaction.getTotalAmount(), oldStock, newStock));
-            
-            return savedTransaction;
-            
+
+            return transaction;
         } catch (Exception e) {
+            if (tx != null && tx.getStatus().canRollback()) {
+                try { tx.rollback(); } catch (Exception rbEx) { /* ignore */ }
+            }
             LoggerUtil.logError(TransactionService.class, "Error processing purchase", e);
             showError("Error processing purchase: " + e.getMessage());
             throw e;
@@ -443,8 +419,8 @@ public class TransactionService {
             }
             return deleted;
         } catch (Exception e) {
+            LoggerUtil.logError(TransactionService.class, "Error deleting transaction", e);
             showError("Error deleting transaction: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -458,7 +434,7 @@ public class TransactionService {
         try {
             return transactionDAO.findById(transactionId);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.logError(TransactionService.class, "Error loading transaction by ID: " + transactionId, e);
             return Optional.empty();
         }
     }

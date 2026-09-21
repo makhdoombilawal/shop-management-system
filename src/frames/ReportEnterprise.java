@@ -56,6 +56,12 @@ public class ReportEnterprise extends BaseFrame {
         super();
         if (!authorized) return;
         
+        if (!Session.isAdminOrManager()) {
+            JOptionPane.showMessageDialog(this, "Access Denied: Admin or Manager permissions required.", "Access Denied", JOptionPane.ERROR_MESSAGE);
+            dispose();
+            return;
+        }
+        
         setTitle("Business Reports - Shop Manager");
         setSize(1700, 900);
         setLocationRelativeTo(null);
@@ -180,8 +186,7 @@ public class ReportEnterprise extends BaseFrame {
                             util.LoggerUtil.logInfo("🔄 Executing generateReport() for From Date change...");
                             generateReport();
                         } catch (Exception ex) {
-                            util.LoggerUtil.logError("❌ Error auto-regenerating report: " + ex.getMessage(), null);
-                            ex.printStackTrace();
+                            util.LoggerUtil.logError(ReportEnterprise.class, "Error auto-regenerating report for From Date", ex);
                         }
                     });
                 } else {
@@ -228,8 +233,7 @@ public class ReportEnterprise extends BaseFrame {
                             util.LoggerUtil.logInfo("🔄 Executing generateReport() for To Date change...");
                             generateReport();
                         } catch (Exception ex) {
-                            util.LoggerUtil.logError("❌ Error auto-regenerating report: " + ex.getMessage(), null);
-                            ex.printStackTrace();
+                            util.LoggerUtil.logError(ReportEnterprise.class, "Error auto-regenerating report for To Date", ex);
                         }
                     });
                 } else {

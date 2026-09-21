@@ -1,57 +1,41 @@
 package util;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
  * Utility class for password hashing and verification
- * Uses SHA-256 with salt for secure password storage
- * 
- * NOTE: For production, consider using BCrypt library for even better security
- * This implementation provides good security without external dependencies
+ * Uses BCrypt with automatic backward-compatibility for legacy SHA-256 hashes.
  * 
  * @author Shop Management System
  */
 public class PasswordUtil {
     
     private static final String HASH_ALGORITHM = "SHA-256";
-    private static final int SALT_LENGTH = 16;
-    private static final int ITERATIONS = 10000; // PBKDF2-like iterations
+    private static final int ITERATIONS = 10000;
+    private static final int BCRYPT_LOG_ROUNDS = 12;
     
     /**
-     * Hash a password with a randomly generated salt
-     * Format: salt$hash
+     * Hash a password using BCrypt algorithm
      * 
      * @param plainPassword The password to hash
-     * @return Salted hash string
+     * @return BCrypt hash string
      */
     public static String hashPassword(String plainPassword) {
         if (plainPassword == null || plainPassword.isEmpty()) {
             throw new IllegalArgumentException("Password cannot be null or empty");
         }
-        
-        try {
-            // Generate random salt
-            byte[] salt = generateSalt();
-            
-            // Hash password with salt
-            byte[] hash = hashWithSalt(plainPassword, salt);
-            
-            // Return format: base64(salt)$base64(hash)
-            return Base64.getEncoder().encodeToString(salt) + "$" + 
-                   Base64.getEncoder().encodeToString(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing password", e);
-        }
+        return BCrypt.hashpw(plainPassword, BCrypt.gensalt(BCRYPT_LOG_ROUNDS));
     }
     
     /**
-     * Verify a password against a stored hash
+     * Verify a password against a stored hash (supports BCrypt and legacy SHA-256)
      * 
      * @param plainPassword The password to verify
-     * @param storedHash The stored hash (format: salt$hash)
+     * @param storedHash The stored hash
      * @return true if password matches
      */
     public static boolean verifyPassword(String plainPassword, String storedHash) {
@@ -59,45 +43,46 @@ public class PasswordUtil {
             return false;
         }
         
+        if (isBCryptHash(storedHash)) {
+            try {
+                return BCrypt.checkpw(plainPassword, storedHash);
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        
+        // Legacy SHA-256 hash verification
+        return verifyLegacySha256(plainPassword, storedHash);
+    }
+
+    /**
+     * Legacy SHA-256 verification for backward compatibility
+     */
+    private static boolean verifyLegacySha256(String plainPassword, String storedHash) {
         try {
-            // Split stored hash into salt and hash parts
             String[] parts = storedHash.split("\\$");
             if (parts.length != 2) {
-                return false; // Invalid format
+                return false;
             }
             
             byte[] salt = Base64.getDecoder().decode(parts[0]);
             byte[] expectedHash = Base64.getDecoder().decode(parts[1]);
-            
-            // Hash the input password with the same salt
             byte[] actualHash = hashWithSalt(plainPassword, salt);
             
-            // Compare hashes
             return MessageDigest.isEqual(expectedHash, actualHash);
         } catch (Exception e) {
             return false;
         }
     }
-    
+
     /**
-     * Generate a random salt
-     */
-    private static byte[] generateSalt() {
-        SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[SALT_LENGTH];
-        random.nextBytes(salt);
-        return salt;
-    }
-    
-    /**
-     * Hash password with salt using multiple iterations for security
+     * Hash password with salt using multiple iterations for legacy SHA-256 verification
      */
     private static byte[] hashWithSalt(String password, byte[] salt) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance(HASH_ALGORITHM);
         md.update(salt);
         byte[] hash = md.digest(password.getBytes());
         
-        // Apply multiple iterations for additional security
         for (int i = 0; i < ITERATIONS; i++) {
             md.reset();
             hash = md.digest(hash);
@@ -107,10 +92,25 @@ public class PasswordUtil {
     }
     
     /**
-     * Check if a password is already hashed (contains salt separator)
+     * Check if a hash is formatted using BCrypt
+     */
+    public static boolean isBCryptHash(String hash) {
+        return hash != null && (hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$"));
+    }
+
+    /**
+     * Check if a hash is legacy (plain text or SHA-256) needing upgrade to BCrypt
+     */
+    public static boolean isLegacyHash(String hash) {
+        return hash == null || !isBCryptHash(hash);
+    }
+    
+    /**
+     * Check if a password is already hashed (BCrypt or legacy SHA-256)
      */
     public static boolean isPasswordHashed(String password) {
-        return password != null && password.contains("$") && password.split("\\$").length == 2;
+        if (password == null) return false;
+        return isBCryptHash(password) || (password.contains("$") && password.split("\\$").length == 2);
     }
     
     /**

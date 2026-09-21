@@ -854,6 +854,7 @@ public class CashTransactionEnterprise extends BaseFrame {
         }
         
         // Process the sale
+        btnCompleteSale.setEnabled(false);
         try {
             // Build enhanced receipt with company info and branding
             StringBuilder receiptMsg = new StringBuilder();
@@ -948,6 +949,8 @@ public class CashTransactionEnterprise extends BaseFrame {
         } catch (Exception e) {
             LoggerUtil.logError(CashTransactionEnterprise.class, "Error completing sale", e);
             EnterpriseTheme.showError(this, "Failed to complete sale: " + e.getMessage());
+        } finally {
+            calculateChange();
         }
     }
 

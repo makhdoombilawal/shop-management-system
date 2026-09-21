@@ -40,6 +40,14 @@ public abstract class GenericDAO<T, ID extends Serializable> {
             throw new RuntimeException("Error saving entity: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Save or update an entity within an existing Hibernate session
+     */
+    public T save(T entity, org.hibernate.Session session) {
+        session.saveOrUpdate(entity);
+        return entity;
+    }
     
     /**
      * Find entity by ID
@@ -82,6 +90,14 @@ public abstract class GenericDAO<T, ID extends Serializable> {
             }
             throw new RuntimeException("Error updating entity: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Update an entity within an existing Hibernate session
+     */
+    public T update(T entity, org.hibernate.Session session) {
+        session.update(entity);
+        return entity;
     }
     
     /**

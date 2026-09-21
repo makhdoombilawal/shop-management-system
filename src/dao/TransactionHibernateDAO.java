@@ -252,7 +252,7 @@ public class TransactionHibernateDAO extends GenericDAO<TransactionEntity, Integ
             return false;
         } catch (Exception e) {
             if (tx != null) tx.rollback();
-            e.printStackTrace();
+            util.LoggerUtil.logError(TransactionHibernateDAO.class, "Error deleting transaction by ID: " + transactionId, e);
             return false;
         } finally {
             if (session != null) session.close();
@@ -270,7 +270,7 @@ public class TransactionHibernateDAO extends GenericDAO<TransactionEntity, Integ
             Query<Double> query = session.createQuery(hql, Double.class);
             return query.uniqueResult();
         } catch (Exception e) {
-            e.printStackTrace();
+            util.LoggerUtil.logError(TransactionHibernateDAO.class, "Error calculating total revenue", e);
             return 0.0;
         }
     }

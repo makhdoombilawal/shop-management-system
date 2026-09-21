@@ -33,7 +33,7 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
             query.setParameter("username", username);
             return query.uniqueResultOptional();
         } catch (Exception e) {
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error finding user by username: " + username, e);
             return Optional.empty();
         } finally {
             if (session != null) session.close();
@@ -68,13 +68,13 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
                     tx.commit();
                 } catch (Exception e) {
                     if (tx != null) tx.rollback();
-                    e.printStackTrace();
+                    util.LoggerUtil.logError(UserHibernateDAO.class, "Error updating last login for: " + username, e);
                 }
             }
             
             return userOpt;
         } catch (Exception e) {
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error authenticating user: " + username, e);
             return Optional.empty();
         } finally {
             if (session != null) session.close();
@@ -93,7 +93,7 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
                 "FROM UserEntity WHERE isActive = true ORDER BY username", UserEntity.class);
             return query.list();
         } catch (Exception e) {
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error fetching active users", e);
             return List.of();
         } finally {
             if (session != null) session.close();
@@ -115,7 +115,7 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
             query.setParameter("role", role);
             return query.list();
         } catch (Exception e) {
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error fetching users by role: " + role, e);
             return List.of();
         } finally {
             if (session != null) session.close();
@@ -144,7 +144,7 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
             return false;
         } catch (Exception e) {
             if (tx != null) tx.rollback();
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error deactivating user: " + userId, e);
             return false;
         } finally {
             if (session != null) session.close();
@@ -173,7 +173,7 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
             return false;
         } catch (Exception e) {
             if (tx != null) tx.rollback();
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error activating user: " + userId, e);
             return false;
         } finally {
             if (session != null) session.close();
@@ -212,7 +212,7 @@ public class UserHibernateDAO extends GenericDAO<UserEntity, Integer> {
             return false;
         } catch (Exception e) {
             if (tx != null) tx.rollback();
-            e.printStackTrace();
+            util.LoggerUtil.logError(UserHibernateDAO.class, "Error changing password for user: " + userId, e);
             return false;
         } finally {
             if (session != null) session.close();

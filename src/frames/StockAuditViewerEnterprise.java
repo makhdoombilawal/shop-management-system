@@ -52,6 +52,12 @@ public class StockAuditViewerEnterprise extends BaseFrame {
         super();
         if (!authorized) return;
         
+        if (!Session.isAdminOrManager()) {
+            JOptionPane.showMessageDialog(this, "Access Denied: Admin or Manager permissions required.", "Access Denied", JOptionPane.ERROR_MESSAGE);
+            dispose();
+            return;
+        }
+        
         setTitle("Stock Audit History - Shop Manager");
         setSize(1600, 850);
         setLocationRelativeTo(null);

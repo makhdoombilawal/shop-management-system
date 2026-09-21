@@ -42,6 +42,12 @@ public class RoleManagementEnterprise extends BaseFrame {
         super();
         if (!authorized) return;
         
+        if (!Session.isAdmin()) {
+            JOptionPane.showMessageDialog(this, "Access Denied: Admin permissions required.", "Access Denied", JOptionPane.ERROR_MESSAGE);
+            dispose();
+            return;
+        }
+        
         setTitle("Role Management - Shop Manager");
         setSize(1400, 800);
         setLocationRelativeTo(null);

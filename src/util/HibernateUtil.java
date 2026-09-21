@@ -64,8 +64,7 @@ public class HibernateUtil {
             util.LoggerUtil.logInfo("═══════════════════════════════════════════════════════");
 
         } catch (Throwable ex) {
-            util.LoggerUtil.logError("❌ SessionFactory creation failed: " + ex, null);
-            ex.printStackTrace();
+            util.LoggerUtil.logError(HibernateUtil.class, "SessionFactory creation failed", ex);
 
             if (!isHeadlessMode()) {
                 showErrorDialog(ex);

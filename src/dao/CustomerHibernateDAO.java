@@ -109,6 +109,19 @@ public class CustomerHibernateDAO extends GenericDAO<CustomerEntity, Integer> {
             throw new RuntimeException("Error updating purchase info: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Update customer purchase info within an existing Hibernate session
+     */
+    public boolean updatePurchaseInfo(Integer customerId, Double amount, org.hibernate.Session session) {
+        CustomerEntity customer = session.get(CustomerEntity.class, customerId);
+        if (customer != null) {
+            customer.updateLastPurchase(amount);
+            session.update(customer);
+            return true;
+        }
+        return false;
+    }
     
     /**
      * Deactivate customer

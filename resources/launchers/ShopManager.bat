@@ -105,7 +105,7 @@ echo ClassPath: !CLASSPATH! >> "!LOG_FILE!"
 echo ============================================================================ >> "!LOG_FILE!"
 
 REM Execute Java application
-!JAVA_EXE! !JAVA_OPTS! -cp "!CLASSPATH!" shop.Shop >> "!LOG_FILE!" 2>&1
+"!JAVA_EXE!" !JAVA_OPTS! -cp "!CLASSPATH!" shop.Shop >> "!LOG_FILE!" 2>&1
 
 REM Capture exit code
 set EXIT_CODE=!ERRORLEVEL!

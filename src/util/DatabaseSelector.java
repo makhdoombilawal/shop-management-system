@@ -203,7 +203,7 @@ public class DatabaseSelector {
         defaults.setProperty("db.mysql.port", "3306");
         defaults.setProperty("db.mysql.database", "shop2");
         defaults.setProperty("db.mysql.username", "root");
-        defaults.setProperty("db.mysql.password", "root");
+        defaults.setProperty("db.mysql.password", "");
         defaults.setProperty("db.mysql.connection.timeout", "3000");
 
         // SQLite defaults

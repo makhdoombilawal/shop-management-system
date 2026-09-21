@@ -58,6 +58,12 @@ public class AuditLogViewerEnterprise extends BaseFrame {
         super();
         if (!authorized) return;
         
+        if (!Session.isAdminOrManager()) {
+            JOptionPane.showMessageDialog(this, "Access Denied: Admin or Manager permissions required.", "Access Denied", JOptionPane.ERROR_MESSAGE);
+            dispose();
+            return;
+        }
+        
         setTitle("System Audit Log - Shop Manager");
         setSize(1700, 900);
         setLocationRelativeTo(null);

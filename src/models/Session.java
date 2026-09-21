@@ -15,6 +15,9 @@ public class Session {
     private static String fullName;
     private static UserEntity currentUser;
 
+    private static long lastActivityTime = 0;
+    private static final long MAX_INACTIVE_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
     /**
      * Login user with full details
      * @param user UserEntity of logged in user
@@ -27,6 +30,7 @@ public class Session {
             role = user.getRole();
             fullName = user.getFullName();
             currentUser = user;
+            lastActivityTime = System.currentTimeMillis();
         }
     }
 
@@ -40,6 +44,16 @@ public class Session {
         loggedIn = true;
         username = user;
         role = "ADMIN"; // Default role for legacy logins (hardcoded credentials)
+        lastActivityTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Touch session to update last activity timestamp
+     */
+    public static void touch() {
+        if (loggedIn) {
+            lastActivityTime = System.currentTimeMillis();
+        }
     }
 
     /**
@@ -52,14 +66,23 @@ public class Session {
         role = null;
         fullName = null;
         currentUser = null;
+        lastActivityTime = 0;
     }
 
     /**
-     * Check if user is logged in
-     * @return true if logged in
+     * Check if user is logged in and session is active (not expired due to inactivity)
+     * @return true if logged in and active
      */
     public static boolean isLoggedIn() {
-        return loggedIn;
+        if (!loggedIn) {
+            return false;
+        }
+        if (lastActivityTime > 0 && (System.currentTimeMillis() - lastActivityTime > MAX_INACTIVE_INTERVAL_MS)) {
+            logout();
+            return false;
+        }
+        touch();
+        return true;
     }
 
     /**

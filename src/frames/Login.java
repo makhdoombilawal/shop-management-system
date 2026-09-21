@@ -132,12 +132,8 @@ public class Login extends javax.swing.JFrame {
     }
 
     /**
-     * Perform login authentication using database or hardcoded super-admin
+     * Perform login authentication using database
      * Validates input, authenticates user, and launches dashboard
-     *
-     * SUPER-ADMIN CREDENTIALS (hardcoded in code, NOT in database):
-     * Username: Bilawal
-     * Password: breakthewall
      */
     private void performLogin() {
         String userInput = username.getText().trim();
@@ -169,40 +165,6 @@ public class Login extends javax.swing.JFrame {
         loginButton.setText("Authenticating...");
 
         try {
-            // ✅ SUPER-ADMIN CHECK (hardcoded credentials - NOT in database)
-            if ("Bilawal".equalsIgnoreCase(normalizedUser) && !normalizedPass.isEmpty()) {
-                // Create super-admin user object (in-memory only, not from DB)
-                UserEntity superAdmin = new UserEntity();
-                superAdmin.setUserId(0); // Special ID for super-admin
-                superAdmin.setUsername("Bilawal");
-                superAdmin.setFullName("Super Administrator - Bilawal");
-                superAdmin.setRole("SUPER_ADMIN");
-                superAdmin.setIsActive(true);
-
-                // Create session with super-admin privileges
-                models.Session.login(superAdmin);
-
-                // Success - show welcome message
-                JOptionPane.showMessageDialog(this,
-                    "🔐 SUPER ADMIN ACCESS GRANTED\n\n" +
-                    "Welcome, " + superAdmin.getFullName() + "!\n\n" +
-                    "Role: SUPER ADMINISTRATOR\n" +
-                    "Access Level: FULL SYSTEM CONTROL\n\n" +
-                    "⚠️ This account has unrestricted access to all system functions.",
-                    "Super Admin Login",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-                // Launch dashboard
-                try {
-                    new DashboardEnterprise().setVisible(true);
-                    this.dispose();
-                } catch (Exception e) {
-                    showError("Error opening dashboard: " + e.getMessage());
-                    e.printStackTrace();
-                }
-                return;
-            }
-
             // ✅ DATABASE AUTHENTICATION (for regular users)
             Optional<UserEntity> userOpt = userService.authenticate(userInput, passInput);
 
@@ -231,8 +193,9 @@ public class Login extends javax.swing.JFrame {
                     new DashboardEnterprise().setVisible(true);
                     this.dispose();
                 } catch (Exception e) {
+                    service.UserService.class.getName(); // check reference
+                    util.LoggerUtil.logError(Login.class, "Error opening dashboard", e);
                     showError("Error opening dashboard: " + e.getMessage());
-                    e.printStackTrace();
                 }
             } else {
                 // Authentication failed
@@ -241,8 +204,8 @@ public class Login extends javax.swing.JFrame {
                 username.requestFocus();
             }
         } catch (Exception e) {
+            util.LoggerUtil.logError(Login.class, "Login error", e);
             showError("Login error: " + e.getMessage());
-            e.printStackTrace();
         } finally {
             // Re-enable login button
             loginButton.setEnabled(true);

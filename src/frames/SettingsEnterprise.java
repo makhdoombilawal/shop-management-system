@@ -581,8 +581,8 @@ public class SettingsEnterprise extends BaseFrame {
             util.LoggerUtil.logInfo("✓ Settings loaded from database");
 
         } catch (Exception e) {
+            util.LoggerUtil.logError(SettingsEnterprise.class, "Error loading settings", e);
             EnterpriseTheme.showError(this, "Error loading settings: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -646,8 +646,7 @@ public class SettingsEnterprise extends BaseFrame {
             // Validation error
             EnterpriseTheme.showError(this, "Validation Error: " + e.getMessage());
         } catch (Exception e) {
-            EnterpriseTheme.showError(this, "Error saving settings: " + e.getMessage());
-            e.printStackTrace();
+            util.LoggerUtil.logError(SettingsEnterprise.class, "Error saving settings", e);
         }
     }
 }
