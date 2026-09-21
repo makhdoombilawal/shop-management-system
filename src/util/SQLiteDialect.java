@@ -53,22 +53,43 @@ public class SQLiteDialect extends Dialect {
     }
 
     // Identity column support
-    
+    @Override
+    public org.hibernate.dialect.identity.IdentityColumnSupport getIdentityColumnSupport() {
+        return new org.hibernate.dialect.identity.IdentityColumnSupportImpl() {
+            @Override
+            public boolean supportsIdentityColumns() {
+                return true;
+            }
+
+            @Override
+            public boolean hasDataTypeInIdentityColumn() {
+                return false;
+            }
+
+            @Override
+            public String getIdentitySelectString(String table, String column, int type) {
+                return "select last_insert_rowid()";
+            }
+
+            @Override
+            public String getIdentityColumnString(int type) {
+                return "integer";
+            }
+        };
+    }
+
     public boolean supportsIdentityColumns() {
         return true;
     }
 
-    
     public boolean hasDataTypeInIdentityColumn() {
         return false;
     }
 
-    
     public String getIdentityColumnString() {
         return "integer";
     }
 
-    
     public String getIdentitySelectString() {
         return "select last_insert_rowid()";
     }

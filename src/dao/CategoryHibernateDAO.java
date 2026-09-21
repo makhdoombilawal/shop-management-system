@@ -153,6 +153,8 @@ public class CategoryHibernateDAO extends GenericDAO<CategoryEntity, Integer> {
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
             
+            List<String> existingNames = session.createQuery("SELECT c.name FROM CategoryEntity c", String.class).list();
+            
             String[] defaultCategories = {
                 "Electronics", "Food & Beverages", "Clothing", "Home & Garden",
                 "Health & Beauty", "Sports & Outdoors", "Books & Media", "Toys & Games",
@@ -160,7 +162,7 @@ public class CategoryHibernateDAO extends GenericDAO<CategoryEntity, Integer> {
             };
             
             for (String categoryName : defaultCategories) {
-                if (!categoryExists(categoryName)) {
+                if (!existingNames.contains(categoryName)) {
                     CategoryEntity category = new CategoryEntity(categoryName, "Default category: " + categoryName);
                     session.save(category);
                 }

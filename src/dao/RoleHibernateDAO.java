@@ -87,20 +87,22 @@ public class RoleHibernateDAO extends GenericDAO<RoleEntity, Integer> {
         try (org.hibernate.Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
             
+            List<String> existingRoles = session.createQuery("SELECT r.name FROM RoleEntity r", String.class).list();
+            
             // ADMIN role
-            if (!roleExists("ADMIN")) {
+            if (!existingRoles.contains("ADMIN")) {
                 RoleEntity admin = new RoleEntity("ADMIN", "System Administrator - Full access to all features");
                 session.save(admin);
             }
             
             // MANAGER role
-            if (!roleExists("MANAGER")) {
+            if (!existingRoles.contains("MANAGER")) {
                 RoleEntity manager = new RoleEntity("MANAGER", "Manager - Can manage products, customers, and view reports");
                 session.save(manager);
             }
             
             // CASHIER role
-            if (!roleExists("CASHIER")) {
+            if (!existingRoles.contains("CASHIER")) {
                 RoleEntity cashier = new RoleEntity("CASHIER", "Cashier - Can process sales and view inventory");
                 session.save(cashier);
             }
@@ -109,8 +111,10 @@ public class RoleHibernateDAO extends GenericDAO<RoleEntity, Integer> {
             util.LoggerUtil.logInfo("✅ Default roles created successfully");
             
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
-            throw new RuntimeException("Error creating default roles: " + e.getMessage(), e);
+            if (transaction != null && transaction.getStatus().canRollback()) {
+                transaction.rollback();
+            }
+            util.LoggerUtil.logError(RoleHibernateDAO.class, "Error creating default roles: " + e.getMessage(), e);
         }
     }
 }

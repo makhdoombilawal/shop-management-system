@@ -523,13 +523,15 @@ public class DashboardEnterprise extends BaseFrame {
      * Load all metrics asynchronously
      */
     private void loadMetrics() {
-        // Use CompletableFuture for async loading
-        CompletableFuture.runAsync(() -> loadCustomersCount());
-        CompletableFuture.runAsync(() -> loadProductsCount());
-        CompletableFuture.runAsync(() -> loadTodaySales());
-        CompletableFuture.runAsync(() -> loadTodayTransactions());
-        CompletableFuture.runAsync(() -> loadLowStockCount());
-        CompletableFuture.runAsync(() -> loadTotalRevenue());
+        // Run metric loading off EDT sequentially to prevent connection pool exhaustion
+        CompletableFuture.runAsync(() -> {
+            loadCustomersCount();
+            loadProductsCount();
+            loadTodaySales();
+            loadTodayTransactions();
+            loadLowStockCount();
+            loadTotalRevenue();
+        });
     }
     
     /**

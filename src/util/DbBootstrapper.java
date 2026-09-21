@@ -28,11 +28,11 @@ public final class DbBootstrapper {
         try {
             ensureDatabaseReady();
         } catch (Exception e) {
+            util.LoggerUtil.logError(DbBootstrapper.class, "Database bootstrapping error during startup", e);
             // Only show UI if not explicitly headless
             if (!isHeadlessMode()) {
                 showUserFriendlyErrorDialog(e);
             }
-            throw e;
         }
     }
 

